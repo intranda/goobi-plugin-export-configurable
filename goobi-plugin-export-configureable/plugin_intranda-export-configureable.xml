@@ -1,0 +1,14 @@
+<config_plugin>
+	<exportFolder>/tmp</exportFolder>
+	<useSubFolderPerProcess>true</useSubFolderPerProcess>
+	<folder>
+		<includeDerivate>true</includeDerivate>
+		<includeMaster>true</includeMaster>
+		<includeOcr>true</includeOcr>
+		<includeSource>false</includeSource>
+		<includeImport>false</includeImport>
+		<includeExort>false</includeExort>
+		<includeITM>false</includeITM>
+		<includeValidation>false</includeValidation>
+	</folder>
+</config_plugin>

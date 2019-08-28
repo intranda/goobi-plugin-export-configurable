@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<project name="goobi-plugin-export-configureable" default="devbuild">
+	<target name="devbuild">
+		<exec executable="mvn">
+			<arg value="package" />
+		</exec>
+		<copy file="module-main/target/goobi-plugin-export-configureable.jar" todir="/opt/digiverso/goobi/plugins/export/"/>
+	</target>
+</project>
