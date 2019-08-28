@@ -1,5 +1,5 @@
 <archetype>
-  <id>goobi-plugin-export-configureable</id>
+  <id>goobi-plugin-export-configurable</id>
   <sources>
     <source>src/main/java/App.java</source>
   </sources>

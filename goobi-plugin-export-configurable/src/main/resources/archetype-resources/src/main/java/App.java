@@ -1,4 +1,4 @@
-package $de.intranda.goobi.plugins.export.goobi_plugin_export_configureable;
+package $de.intranda.goobi.plugins.export.goobi_plugin_export_configurable;
 
 /**
  * Hello world!
