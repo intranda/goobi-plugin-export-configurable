@@ -44,7 +44,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
     private PluginType type = PluginType.Export;
 
     @Getter
-    private String title = "intranda-export-configureable";
+    private String title = "intranda_export_configureable";
 
     private String exportRootDirectory;
     private boolean useSubFolderPerProcess;

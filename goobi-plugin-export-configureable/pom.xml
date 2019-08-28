@@ -11,7 +11,7 @@
     <properties>
         <goobi.pluginversion>1.0</goobi.pluginversion>
         <dest.folder.main>/opt/digiverso/goobi/plugins/export/</dest.folder.main>
-        <jar.name>goobi-plugin-export-configureable</jar.name>
+        <jar.name>plugin_intranda_export_configureable</jar.name>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
