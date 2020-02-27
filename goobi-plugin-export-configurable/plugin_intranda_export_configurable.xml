@@ -1,15 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config_plugin>
-	<exportFolder>/tmp</exportFolder>
-	<useSubFolderPerProcess>true</useSubFolderPerProcess>
-	<folder>
-		<includeDerivate>true</includeDerivate>
-		<includeMaster>true</includeMaster>
-		<includeOcr>true</includeOcr>
-		<includeSource>false</includeSource>
-		<includeImport>false</includeImport>
-		<includeExort>false</includeExort>
-		<includeITM>false</includeITM>
-		<includeValidation>false</includeValidation>
-	</folder>
+	<!--
+        order of configuration is:
+          1.) project name name matches
+          2.) project is *
+	-->
+
+	
+	<config>
+		<project>testocr</project>
+	
+		<exportFolder>/tmp</exportFolder>
+		<useSubFolderPerProcess>true</useSubFolderPerProcess>
+		<folder>
+			<includeDerivate>true</includeDerivate>
+			<includeMaster>true</includeMaster>
+			<includeSource>false</includeSource>
+			<includeImport>false</includeImport>
+			<includeExort>false</includeExort>
+			<includeITM>false</includeITM>
+			<includeValidation>false</includeValidation>
+			<includeOcr>true</includeOcr>
+			<ocr>
+				<suffix>alto</suffix>
+			</ocr>
+		</folder>
+	</config>
+
+
+	<config>
+		<project>*</project>
+		
+		<exportFolder>/tmp</exportFolder>
+		<useSubFolderPerProcess>true</useSubFolderPerProcess>
+		<folder>
+			<includeDerivate>true</includeDerivate>
+			<includeMaster>true</includeMaster>
+			<includeOcr>true</includeOcr>
+			<includeSource>false</includeSource>
+			<includeImport>false</includeImport>
+			<includeExort>false</includeExort>
+			<includeITM>false</includeITM>
+			<includeValidation>false</includeValidation>
+		</folder>
+	</config>
+	
 </config_plugin>
