@@ -81,6 +81,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         String exportRootDirectory = config.getString("./exportFolder", null);
         boolean useSubFolderPerProcess = config.getBoolean("./useSubFolderPerProcess", false);
 
+        String[] imageFolders = config.getStringArray("./folder/genericfolder");
         boolean includeDerivate = config.getBoolean("./folder/includeDerivate", false);
         boolean includeMaster = config.getBoolean("./folder/includeMaster", false);
         boolean includeOcr = config.getBoolean("./folder/includeOcr", false);
@@ -166,6 +167,10 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         }
         if (masterFolder != null && Files.exists(masterFolder)) {
             StorageProvider.getInstance().copyDirectory(masterFolder, Paths.get(destination.toString(), masterFolder.getFileName().toString()));
+        }
+        for (String configuredFolder : imageFolders) {
+            Path folderPath = Paths.get(process.getConfiguredImageFolder(configuredFolder));
+            StorageProvider.getInstance().copyDirectory(folderPath, destination.resolve(folderPath.getFileName().toString()));
         }
         if (ocrFolder != null && Files.exists(ocrFolder)) {
             Set<String> ocrSuffixes = new HashSet<>(Arrays.asList(config.getStringArray("./folder/ocr/suffix")));
