@@ -34,6 +34,8 @@
 		<exportFolder>/tmp</exportFolder>
 		<useSubFolderPerProcess>true</useSubFolderPerProcess>
 		<folder>
+            <!-- as configured in goobi_config.properties -->
+            <genericFolder>thumbs</genericFolder>
 			<includeDerivate>true</includeDerivate>
 			<includeMaster>true</includeMaster>
 			<includeOcr>true</includeOcr>

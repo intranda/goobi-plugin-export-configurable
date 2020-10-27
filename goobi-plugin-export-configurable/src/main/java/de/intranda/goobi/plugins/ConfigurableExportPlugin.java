@@ -81,7 +81,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         String exportRootDirectory = config.getString("./exportFolder", null);
         boolean useSubFolderPerProcess = config.getBoolean("./useSubFolderPerProcess", false);
 
-        String[] imageFolders = config.getStringArray("./folder/genericfolder");
+        String[] imageFolders = config.getStringArray("./folder/genericFolder");
         boolean includeDerivate = config.getBoolean("./folder/includeDerivate", false);
         boolean includeMaster = config.getBoolean("./folder/includeMaster", false);
         boolean includeOcr = config.getBoolean("./folder/includeOcr", false);
