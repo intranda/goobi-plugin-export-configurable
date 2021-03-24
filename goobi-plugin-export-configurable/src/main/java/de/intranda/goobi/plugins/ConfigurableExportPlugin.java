@@ -20,7 +20,6 @@ import org.goobi.production.plugin.interfaces.IExportPlugin;
 import org.goobi.production.plugin.interfaces.IPlugin;
 
 import de.sub.goobi.config.ConfigPlugins;
-import de.sub.goobi.config.ConfigProjects;
 import de.sub.goobi.export.dms.ExportDms;
 import de.sub.goobi.helper.Helper;
 import de.sub.goobi.helper.StorageProvider;
@@ -132,7 +131,6 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         }
 
         myPrefs = process.getRegelsatz().getPreferences();
-        cp = new ConfigProjects(process.getProjekt().getTitel());
 
         // read metadata data
         Fileformat gdzfile;
@@ -204,7 +202,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         }
         if (validationFolder != null && Files.exists(validationFolder)) {
             StorageProvider.getInstance()
-                    .copyDirectory(validationFolder, Paths.get(destination.toString(), validationFolder.getFileName().toString()));
+            .copyDirectory(validationFolder, Paths.get(destination.toString(), validationFolder.getFileName().toString()));
         }
 
         // write mets file
