@@ -58,7 +58,6 @@ import ugh.exceptions.ReadException;
 import ugh.exceptions.TypeNotAllowedForParentException;
 import ugh.exceptions.WriteException;
 
-
 @PluginImplementation
 @Log4j
 
@@ -104,7 +103,6 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         return conf;
     }
 
- 
     @Override
     public boolean startExport(Process process, String inZielVerzeichnis)
             throws IOException, InterruptedException, WriteException, PreferencesException, DocStructHasNoTypeException,
@@ -114,13 +112,13 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         this.myPrefs = process.getRegelsatz().getPreferences();
         SubnodeConfiguration config = getConfig(process);
         embedMarc = config.getBoolean("./includeMarcXml", false);
-        
+
         processId = process.getId();
         //save current project
         oldProject = process.getProjekt();
 
         imageFolders = config.getStringArray("./folder/genericFolder");
-        includeDerivate = config.getBoolean("./folder/includeDerivate", false);
+        includeDerivate = config.getBoolean("./folder/includeMedia", false);
         includeMaster = config.getBoolean("./folder/includeMaster", false);
         includeOcr = config.getBoolean("./folder/includeOcr", false);
         includeSource = config.getBoolean("./folder/includeSource", false);
@@ -159,7 +157,13 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
             targetKeys[i] = replacer.replace(targetKeys[i]);
             if (targetKeys[i] != null && targetKeys[i].equals(targetValues[i])) {
                 try {
-                    matchedProjects.add(ProjectManager.getProjectByName(targetProjectNames[i]));
+                    if (targetProjectNames[i].trim().isBlank()) {
+                        matchedProjects.add(oldProject);
+                    }
+                    else {
+                        matchedProjects.add(ProjectManager.getProjectByName(targetProjectNames[i].trim()));
+                    }
+               
                 } catch (DAOException ex) {
                     String message = "Export cancelled! A target condition was met but the project " + targetProjectNames[i]
                             + " does not exist. Please update the configuration file!";
@@ -172,7 +176,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
             }
         }
 
-        if (matchedProjects.size() >= 1) {
+        if (targetProjectNames.length >= 1) {
             try {
                 for (Project project : matchedProjects) {
                     process.setProjekt(project);
@@ -199,7 +203,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
     }
 
     /**
-     * executes an Export of a given process
+     * executes an Export for a given process
      * 
      * @param process process that shall be exported
      * @return
@@ -304,7 +308,6 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         }
         trimAllMetadata(gdzfile.getDigitalDocument().getLogicalDocStruct());
 
-        //TODO check if it can be removed
         /*
          * -------------------------------- Metadaten validieren --------------------------------
          */
