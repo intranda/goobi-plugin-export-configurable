@@ -1,44 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <config_plugin>
-	<!--
-        order of configuration is:
-          1.) project name name matches
-          2.) project is *
-	-->
-
-	
+	<!-- order of configuration is: 
+	1.) project name matches 
+	2.) project is * -->
 	<config>
 		<project>testocr</project>
-	
-		<exportFolder>/tmp</exportFolder>
-		<useSubFolderPerProcess>true</useSubFolderPerProcess>
 		<folder>
-			<includeDerivate>true</includeDerivate>
+			<includeMedia>true</includeMedia>
 			<includeMaster>true</includeMaster>
 			<includeSource>false</includeSource>
 			<includeImport>false</includeImport>
 			<includeExort>false</includeExort>
 			<includeITM>false</includeITM>
-			<includeValidation>false</includeValidation>
 			<includeOcr>true</includeOcr>
+			<includeValidation>false</includeValidation>
 			<ocr>
 				<suffix>alto</suffix>
 			</ocr>
 		</folder>
 	</config>
 
-
 	<config>
 		<project>*</project>
-		
-		<exportFolder>/tmp</exportFolder>
-		<useSubFolderPerProcess>true</useSubFolderPerProcess>
+		<target key="{meta.ViewerInstance}" value="eivfaanddigihub" projectName="eivfExportProject" />
+		<target key="{meta.ViewerInstance}" value="eivfaanddigihub" projectName="gihubExportProject" />
+		<target key="{meta.ViewerInstance}" value="" projectName="" />
+		<includeMarcXml>false</includeMarcXml>
 		<folder>
-            <!-- as configured in goobi_config.properties -->
-            <genericFolder>thumbs</genericFolder>
-			<includeDerivate>true</includeDerivate>
+			<!-- as configured in goobi_config.properties -->
+			<!--genericFolder>thumbs</genericFolder -->
+			<includeMedia>true</includeMedia>
 			<includeMaster>true</includeMaster>
-			<includeOcr>true</includeOcr>
+			<includeOcr>false</includeOcr>
 			<includeSource>false</includeSource>
 			<includeImport>false</includeImport>
 			<includeExort>false</includeExort>
@@ -46,5 +39,4 @@
 			<includeValidation>false</includeValidation>
 		</folder>
 	</config>
-	
 </config_plugin>
