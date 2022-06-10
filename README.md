@@ -18,8 +18,8 @@ Detail                      | Description
 **Plugin identifier**       | intranda_export_configurable
 **Plugin type**             | Export Plugin
 **Licence**                 | GPL 2.0 or newer
-**Documentation (German)**  | - no documentation available - 
-**Documentation (English)** | - no documentation available -
+**Documentation (German)**  | https://docs.goobi.io/goobi-workflow-plugins-de/export/intranda_export_configurable 
+**Documentation (English)** | https://docs.goobi.io/goobi-workflow-plugins-en/export/intranda_export_configurable
 
 
 Goobi details
