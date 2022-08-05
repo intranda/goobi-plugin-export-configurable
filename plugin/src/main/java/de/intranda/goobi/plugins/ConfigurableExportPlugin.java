@@ -15,7 +15,6 @@ import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
 import org.apache.commons.configuration.tree.xpath.XPathExpressionEngine;
-import org.apache.commons.lang.StringUtils;
 import org.goobi.beans.Process;
 import org.goobi.beans.Project;
 import org.goobi.production.enums.LogType;
@@ -44,7 +43,7 @@ import de.sub.goobi.metadaten.MetadatenHelper;
 import de.sub.goobi.metadaten.MetadatenVerifizierung;
 import de.sub.goobi.persistence.managers.ProjectManager;
 import lombok.Getter;
-import lombok.extern.log4j.Log4j;
+import lombok.extern.log4j.Log4j2;
 import net.xeoh.plugins.base.annotations.PluginImplementation;
 import ugh.dl.DigitalDocument;
 import ugh.dl.DocStruct;
@@ -59,7 +58,7 @@ import ugh.exceptions.TypeNotAllowedForParentException;
 import ugh.exceptions.WriteException;
 
 @PluginImplementation
-@Log4j
+@Log4j2
 
 public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin, IPlugin {
 
@@ -112,11 +111,12 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         this.myPrefs = process.getRegelsatz().getPreferences();
         SubnodeConfiguration config = getConfig(process);
         embedMarc = config.getBoolean("./includeMarcXml", false);
-
         processId = process.getId();
+        log.debug("Export Process ID: " + processId);
         //save current project
         oldProject = process.getProjekt();
-
+        log.debug("Export Original Project: " + oldProject);
+        
         imageFolders = config.getStringArray("./folder/genericFolder");
         includeDerivate = config.getBoolean("./folder/includeMedia", false);
         includeMaster = config.getBoolean("./folder/includeMaster", false);
@@ -221,7 +221,6 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         ExportFileformat newfile = MetadatenHelper.getExportFileformatByName(process.getProjekt().getFileFormatDmsExport(), process.getRegelsatz());
         try {
             gdzfile = process.readMetadataFile();
-
             newfile.setDigitalDocument(gdzfile.getDigitalDocument());
             gdzfile = newfile;
 
@@ -328,20 +327,26 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         } else {
             destination = Paths.get(exportRootDirectory);
         }
+        log.debug("Export directory: " + destination);
         if (!Files.exists(destination)) {
             Files.createDirectories(destination);
+            log.debug("Export directory created as it did not exist");
         }
         // copy folder to destination
         if (derivateFolder != null && Files.exists(derivateFolder)) {
             StorageProvider.getInstance().copyDirectory(derivateFolder, Paths.get(destination.toString(), derivateFolder.getFileName().toString()));
+            log.debug("Export copy derivatives from " + derivateFolder + " to " + Paths.get(destination.toString(), derivateFolder.getFileName().toString()));
         }
         if (masterFolder != null && Files.exists(masterFolder)) {
             StorageProvider.getInstance().copyDirectory(masterFolder, Paths.get(destination.toString(), masterFolder.getFileName().toString()));
+            log.debug("Export copy masters from " + masterFolder + " to " + Paths.get(destination.toString(), masterFolder.getFileName().toString()));
         }
         for (String configuredFolder : imageFolders) {
             Path folderPath = Paths.get(process.getConfiguredImageFolder(configuredFolder));
             if (Files.exists(folderPath)) {
                 StorageProvider.getInstance().copyDirectory(folderPath, destination.resolve(folderPath.getFileName().toString()));
+                log.debug("Export copy folder from " + folderPath + " to " + destination.resolve(folderPath.getFileName().toString()));
+                
             }
         }
         if (ocrFolder != null && Files.exists(ocrFolder)) {
@@ -354,30 +359,38 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
                 if (ocrSuffixes == null || ocrSuffixes.size() == 0 || ocrSuffixes.contains(suffix)) {
                     if (Files.isDirectory(path)) {
                         StorageProvider.getInstance().copyDirectory(path, Paths.get(destination.toString(), path.getFileName().toString()));
+                        log.debug("Export copy ocr data from " + path + " to " + Paths.get(destination.toString(), path.getFileName().toString()));
                     } else {
                         StorageProvider.getInstance().copyFile(path, Paths.get(destination.toString(), path.getFileName().toString()));
+                        log.debug("Export copy ocr data from " + path + " to " + Paths.get(destination.toString(), path.getFileName().toString()));
                     }
                 }
             }
         }
         if (sourceFolder != null && Files.exists(sourceFolder)) {
             StorageProvider.getInstance().copyDirectory(sourceFolder, Paths.get(destination.toString(), process.getTitel() + "_source"));
+            log.debug("Export copy sourceFolder from " + sourceFolder + " to " +  Paths.get(destination.toString(), process.getTitel() + "_source"));
         }
         if (importFolder != null && Files.exists(importFolder)) {
             StorageProvider.getInstance().copyDirectory(importFolder, Paths.get(destination.toString(), process.getTitel() + "_import"));
+            log.debug("Export copy importFolder from " + importFolder + " to " + Paths.get(destination.toString(), process.getTitel() + "_import"));
         }
         if (exportFolder != null && Files.exists(exportFolder)) {
             StorageProvider.getInstance().copyDirectory(exportFolder, Paths.get(destination.toString(), process.getTitel() + "_export"));
+            log.debug("Export copy exportFolder from " + exportFolder + " to " + Paths.get(destination.toString(), process.getTitel() + "_export"));
         }
         if (itmFolder != null && Files.exists(itmFolder)) {
             StorageProvider.getInstance().copyDirectory(itmFolder, Paths.get(destination.toString(), itmFolder.getFileName().toString()));
+            log.debug("Export copy itmFolder from " + itmFolder + " to " + Paths.get(destination.toString(), itmFolder.getFileName().toString()));
         }
         if (derivateFolder != null && Files.exists(derivateFolder)) {
             StorageProvider.getInstance().copyDirectory(derivateFolder, Paths.get(destination.toString(), derivateFolder.getFileName().toString()));
+            log.debug("Export copy derivateFolder from " + derivateFolder + " to " + Paths.get(destination.toString(), derivateFolder.getFileName().toString()));
         }
         if (validationFolder != null && Files.exists(validationFolder)) {
             StorageProvider.getInstance()
                     .copyDirectory(validationFolder, Paths.get(destination.toString(), validationFolder.getFileName().toString()));
+            log.debug("Export copy validationFolder from " + validationFolder + " to " + Paths.get(destination.toString(), validationFolder.getFileName().toString()));
         }
 
         // check, if import/xxxx_marc.xml exists
@@ -416,15 +429,20 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         // Copy temporary MetsFile to Destination and delete temporary file
         Path exportedMetsFile = Paths.get(destination.toString(), process.getTitel() + ".xml");
         StorageProvider.getInstance().copyFile(temporaryFile, exportedMetsFile);
-
+        log.debug("Export copy temporaryFile from " + temporaryFile + " to " + exportedMetsFile);
+        
         if (StorageProvider.getInstance().isFileExists(anchorFile)) {
             StorageProvider.getInstance()
                     .copyFile(anchorFile, Paths.get(exportedMetsFile.getParent().toString(),
                             exportedMetsFile.getFileName().toString().replace(".xml", "_anchor.xml")));
+            log.debug("Export copy anchorFile from " + anchorFile + " to " + Paths.get(exportedMetsFile.getParent().toString(),
+                    exportedMetsFile.getFileName().toString().replace(".xml", "_anchor.xml")));
             StorageProvider.getInstance().deleteDir(anchorFile);
+            log.debug("Export delete file " + anchorFile);
         }
         StorageProvider.getInstance().deleteDir(temporaryFile);
-
+        log.debug("Export delete folder " + temporaryFile);
+        
         process.setProjekt(oldProject);
         //in case there are other exports set the exportRootDirectory to null
         exportRootDirectory = null;
