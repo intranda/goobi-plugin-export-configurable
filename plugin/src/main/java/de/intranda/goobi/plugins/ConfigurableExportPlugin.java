@@ -115,7 +115,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         log.debug("Export Process ID: " + processId);
         //save current project
         oldProject = process.getProjekt();
-        log.debug("Export Original Project: " + oldProject);
+        log.debug("Export Original Project: " + oldProject.getTitel());
         
         imageFolders = config.getStringArray("./folder/genericFolder");
         includeDerivate = config.getBoolean("./folder/includeMedia", false);
