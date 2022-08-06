@@ -467,8 +467,8 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 			StorageProvider.getInstance().deleteDir(anchorFile);
 			log.debug("Export Plugin - delete file " + anchorFile);
 		}
-		StorageProvider.getInstance().deleteDir(temporaryFile);
-		log.debug("Export Plugin - delete folder " + temporaryFile);
+		StorageProvider.getInstance().deleteFile(temporaryFile);
+		log.debug("Export Plugin - delete file " + temporaryFile);
 
 		process.setProjekt(oldProject);
 		// in case there are other exports set the exportRootDirectory to null
