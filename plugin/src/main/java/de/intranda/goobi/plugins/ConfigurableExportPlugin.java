@@ -236,7 +236,14 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 			return false;
 		}
 
-		Path temporaryFile = StorageProvider.getInstance().createTemporaryFile(process.getTitel(), ".xml");
+		// use the system tmp folder
+		//Path temporaryFile = StorageProvider.getInstance().createTemporaryFile(process.getTitel(), ".xml");
+		
+		// use the goobi internal temp folder instead of the system one
+		Path temporaryFile = Paths.get(ConfigurationHelper.getInstance().getTemporaryFolder(), process.getTitel(), ".xml");
+		StorageProvider.getInstance().createFile(temporaryFile);
+		
+		// write mets file to temp folder
 		writeMetsFile(process, temporaryFile.toString(), gdzfile, false);
 
 		DigitalDocument digDoc = gdzfile.getDigitalDocument();
