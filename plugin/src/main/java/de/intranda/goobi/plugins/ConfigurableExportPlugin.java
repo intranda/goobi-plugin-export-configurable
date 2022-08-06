@@ -78,7 +78,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 	private boolean includeOcr;
 	private boolean includeSource;
 	private boolean includeImport;
-	private boolean includeExort;
+	private boolean includeExport;
 	private boolean includeITM;
 	private boolean includeValidation;
 	private Integer processId;
@@ -123,7 +123,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 		includeOcr = config.getBoolean("./folder/includeOcr", false);
 		includeSource = config.getBoolean("./folder/includeSource", false);
 		includeImport = config.getBoolean("./folder/includeImport", false);
-		includeExort = config.getBoolean("./folder/includeExort", false);
+		includeExport = config.getBoolean("./folder/includeExport", false);
 		includeITM = config.getBoolean("./folder/includeITM", false);
 		includeValidation = config.getBoolean("./folder/includeValidation", false);
 		ocrSuffix = config.getStringArray("./folder/ocr/suffix");
@@ -282,7 +282,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 		if (includeImport) {
 			importFolder = Paths.get(process.getImportDirectory());
 		}
-		if (includeExort) {
+		if (includeExport) {
 			exportFolder = Paths.get(process.getExportDirectory());
 		}
 		if (includeITM) {

@@ -34,7 +34,7 @@
 			<includeOcr>false</includeOcr>
 			<includeSource>false</includeSource>
 			<includeImport>false</includeImport>
-			<includeExort>false</includeExort>
+			<includeExport>false</includeExport>
 			<includeITM>false</includeITM>
 			<includeValidation>false</includeValidation>
 		</folder>
