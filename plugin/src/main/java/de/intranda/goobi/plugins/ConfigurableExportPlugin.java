@@ -217,7 +217,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
      * @throws TypeNotAllowedForParentException
      */
     private boolean runExport(Process process) throws IOException, InterruptedException, SwapException, DAOException, PreferencesException,
-    WriteException, TypeNotAllowedForParentException {
+            WriteException, TypeNotAllowedForParentException {
         Fileformat gdzfile;
         ExportFileformat newfile = MetadatenHelper.getExportFileformatByName(process.getProjekt().getFileFormatDmsExport(), process.getRegelsatz());
         try {
@@ -341,15 +341,9 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
             log.debug("Export Plugin - directory created as it did not exist");
         }
         // copy folder to destination
-        if (derivateFolder != null && Files.exists(derivateFolder)) {
-            StorageProvider.getInstance()
-            .copyDirectory(derivateFolder, Paths.get(destination.toString(), derivateFolder.getFileName().toString()), false);
-            log.debug("Export Plugin - copy derivatives from " + derivateFolder + " to "
-                    + Paths.get(destination.toString(), derivateFolder.getFileName().toString()));
-        }
         if (masterFolder != null && Files.exists(masterFolder)) {
             StorageProvider.getInstance()
-            .copyDirectory(masterFolder, Paths.get(destination.toString(), masterFolder.getFileName().toString()), false);
+                    .copyDirectory(masterFolder, Paths.get(destination.toString(), masterFolder.getFileName().toString()), false);
             log.debug("Export Plugin - copy masters from " + masterFolder + " to "
                     + Paths.get(destination.toString(), masterFolder.getFileName().toString()));
         }
@@ -399,15 +393,16 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
             log.debug("Export Plugin - copy itmFolder from " + itmFolder + " to "
                     + Paths.get(destination.toString(), itmFolder.getFileName().toString()));
         }
+
         if (derivateFolder != null && Files.exists(derivateFolder)) {
             StorageProvider.getInstance()
-            .copyDirectory(derivateFolder, Paths.get(destination.toString(), derivateFolder.getFileName().toString()), false);
-            log.debug("Export Plugin - copy derivateFolder from " + derivateFolder + " to "
+                    .copyDirectory(derivateFolder, Paths.get(destination.toString(), derivateFolder.getFileName().toString()), false);
+            log.debug("Export Plugin - copy derivates from " + derivateFolder + " to "
                     + Paths.get(destination.toString(), derivateFolder.getFileName().toString()));
         }
         if (validationFolder != null && Files.exists(validationFolder)) {
             StorageProvider.getInstance()
-            .copyDirectory(validationFolder, Paths.get(destination.toString(), validationFolder.getFileName().toString()), false);
+                    .copyDirectory(validationFolder, Paths.get(destination.toString(), validationFolder.getFileName().toString()), false);
             log.debug("Export Plugin - copy validationFolder from " + validationFolder + " to "
                     + Paths.get(destination.toString(), validationFolder.getFileName().toString()));
         }
@@ -451,8 +446,8 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 
         if (StorageProvider.getInstance().isFileExists(anchorFile)) {
             StorageProvider.getInstance()
-            .copyFile(anchorFile, Paths.get(exportedMetsFile.getParent().toString(),
-                    exportedMetsFile.getFileName().toString().replace(".xml", "_anchor.xml")));
+                    .copyFile(anchorFile, Paths.get(exportedMetsFile.getParent().toString(),
+                            exportedMetsFile.getFileName().toString().replace(".xml", "_anchor.xml")));
             log.debug("Export Plugin - copy anchorFile from " + anchorFile + " to "
                     + Paths.get(exportedMetsFile.getParent().toString(), exportedMetsFile.getFileName().toString().replace(".xml", "_anchor.xml")));
             StorageProvider.getInstance().deleteDir(anchorFile);
