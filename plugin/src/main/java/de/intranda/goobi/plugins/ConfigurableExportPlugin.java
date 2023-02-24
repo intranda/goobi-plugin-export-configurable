@@ -111,23 +111,8 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         // read configuration
         this.myPrefs = process.getRegelsatz().getPreferences();
         SubnodeConfiguration config = getConfig(process);
-        embedMarc = config.getBoolean("./includeMarcXml", false);
-        processId = process.getId();
-        log.debug("Export Plugin - Process ID: " + processId);
-        // save current project
-        oldProject = process.getProjekt();
-        log.debug("Export Plugin - Original Project: " + oldProject.getTitel());
 
-        imageFolders = config.getStringArray("./folder/genericFolder");
-        includeDerivate = config.getBoolean("./folder/includeMedia", false);
-        includeMaster = config.getBoolean("./folder/includeMaster", false);
-        includeOcr = config.getBoolean("./folder/includeOcr", false);
-        includeSource = config.getBoolean("./folder/includeSource", false);
-        includeImport = config.getBoolean("./folder/includeImport", false);
-        includeExport = config.getBoolean("./folder/includeExport", false);
-        includeITM = config.getBoolean("./folder/includeITM", false);
-        includeValidation = config.getBoolean("./folder/includeValidation", false);
-        ocrSuffix = config.getStringArray("./folder/ocr/suffix");
+        initializePrivateFields(process, config);
 
         String[] targetProjectNames = config.getStringArray("./target/@projectName");
         String[] targetKeys = config.getStringArray("./target/@key");
@@ -142,6 +127,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
             problems.add(message);
             return false;
         }
+
         VariableReplacer replacer;
         try {
             replacer = new VariableReplacer(process.readMetadataFile().getDigitalDocument(), this.myPrefs, process, null);
@@ -176,31 +162,53 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
             }
         }
 
-        if (targetProjectNames.length >= 1) {
-            try {
-                for (Project project : matchedProjects) {
-                    process.setProjekt(project);
-                    if (!runExport(process)) {
-                        String message = "Export cancelled! Export with Parameters of Project" + project.getTitel() + "failed!";
-                        log.error(message);
-                        problems.add(message);
-                        Helper.setMeldung(null, process.getTitel() + ": ", message);
-                        Helper.addMessageToProcessLog(process.getId(), LogType.DEBUG, message);
-                        process.setProjekt(oldProject);
-                        return false;
-                    }
-                }
-            } catch (IOException | InterruptedException | SwapException | DAOException | PreferencesException | WriteException
-                    | TypeNotAllowedForParentException ex) {
-                // if runExport throws an Exception make sure the project is reset before
-                // rethrowing
-                process.setProjekt(oldProject);
-                throw ex;
-            }
-            return true;
-        } else {
+        if (targetProjectNames.length < 1) {
             return runExport(process);
         }
+
+        // targetProjectNames.length >= 1
+        try {
+            for (Project project : matchedProjects) {
+                process.setProjekt(project);
+                if (!runExport(process)) {
+                    String message = "Export cancelled! Export with Parameters of Project" + project.getTitel() + "failed!";
+                    log.error(message);
+                    problems.add(message);
+                    Helper.setMeldung(null, process.getTitel() + ": ", message);
+                    Helper.addMessageToProcessLog(process.getId(), LogType.DEBUG, message);
+                    process.setProjekt(oldProject);
+                    return false;
+                }
+            }
+        } catch (IOException | InterruptedException | SwapException | DAOException | PreferencesException | WriteException
+                | TypeNotAllowedForParentException ex) {
+            // if runExport throws an Exception make sure the project is reset before
+            // rethrowing
+            process.setProjekt(oldProject);
+            throw ex;
+        }
+
+        return true;
+    }
+
+    private void initializePrivateFields(Process process, SubnodeConfiguration config) {
+        embedMarc = config.getBoolean("./includeMarcXml", false);
+        processId = process.getId();
+        log.debug("Export Plugin - Process ID: " + processId);
+        // save current project
+        oldProject = process.getProjekt();
+        log.debug("Export Plugin - Original Project: " + oldProject.getTitel());
+
+        imageFolders = config.getStringArray("./folder/genericFolder");
+        includeDerivate = config.getBoolean("./folder/includeMedia", false);
+        includeMaster = config.getBoolean("./folder/includeMaster", false);
+        includeOcr = config.getBoolean("./folder/includeOcr", false);
+        includeSource = config.getBoolean("./folder/includeSource", false);
+        includeImport = config.getBoolean("./folder/includeImport", false);
+        includeExport = config.getBoolean("./folder/includeExport", false);
+        includeITM = config.getBoolean("./folder/includeITM", false);
+        includeValidation = config.getBoolean("./folder/includeValidation", false);
+        ocrSuffix = config.getStringArray("./folder/ocr/suffix");
     }
 
     /**
