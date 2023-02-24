@@ -254,25 +254,9 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         // write mets file to temp folder
         writeMetsFile(process, temporaryFile.toString(), gdzfile, false);
 
-        // prepare VariableReplacer
-        DigitalDocument digDoc = gdzfile.getDigitalDocument();
-        VariableReplacer replacer = new VariableReplacer(digDoc, this.myPrefs, process, null);
-
-        String exportRootDirectory = replacer.replace(process.getProjekt().getDmsImportImagesPath());
-
-        DocStruct logical = digDoc.getLogicalDocStruct();
-        DocStruct anchor = null;
-        if (logical.getType().isAnchor()) {
-            anchor = logical;
-            logical = logical.getAllChildren().get(0);
-        }
         trimAllMetadata(gdzfile.getDigitalDocument().getLogicalDocStruct());
 
-        /*
-         * -------------------------------- Metadaten validieren
-         * --------------------------------
-         */
-
+        // validate Metadaten
         if (ConfigurationHelper.getInstance().isUseMetadataValidation()) {
             MetadatenVerifizierung mv = new MetadatenVerifizierung();
             if (!mv.validate(gdzfile, this.myPrefs, process)) {
@@ -282,6 +266,11 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
                 return false;
             }
         }
+
+        // prepare destination path
+        DigitalDocument digDoc = gdzfile.getDigitalDocument();
+        VariableReplacer replacer = new VariableReplacer(digDoc, this.myPrefs, process, null);
+        String exportRootDirectory = replacer.replace(process.getProjekt().getDmsImportImagesPath());
 
         Path destination;
         if (process.getProjekt().isDmsImportCreateProcessFolder()) {
@@ -295,9 +284,10 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
             log.debug("Export Plugin - directory created as it did not exist");
         }
 
-        // copy folders
+        // copy folders to destination
         performCopyFolders(process, destination);
 
+        // copy the METS file to destination
         Path exportedMetsFile = Paths.get(destination.toString(), process.getTitel() + ".xml");
         StorageProvider.getInstance().copyFile(temporaryFile, exportedMetsFile);
 
@@ -306,9 +296,10 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         // check, if import/xxxx_marc.xml exists
         if (Files.exists(importDirectory)) {
             List<Path> filesInFolder = StorageProvider.getInstance().listFiles(importDirectory.toString());
-            performMetsMarcExport(logical, anchor, temporaryFile, exportedMetsFile, filesInFolder);
+            performMetsMarcExport(digDoc, temporaryFile, exportedMetsFile, filesInFolder);
         }
 
+        // delete the temporary METS file
         StorageProvider.getInstance().deleteFile(temporaryFile);
         log.debug("Export Plugin - delete file " + temporaryFile);
 
@@ -461,20 +452,27 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         }
     }
 
-    private void performMetsMarcExport(DocStruct logical, DocStruct anchor, Path temporaryFile, Path destination,
+    private void performMetsMarcExport(DigitalDocument digDoc, Path temporaryFile, Path destination,
             List<Path> filesInFolder) throws IOException {
 
         Path anchorFile = Paths.get(temporaryFile.getParent().toString(), temporaryFile.getFileName().toString().replace(".xml", "_anchor.xml")); //NOSONAR
         // update MARC files
         if (embedMarc) {
-            updateMarcFiles(logical, anchor, temporaryFile, anchorFile, filesInFolder);
+            updateMarcFiles(digDoc, temporaryFile, anchorFile, filesInFolder);
         }
 
         // Copy temporary MetsFile to Destination and delete temporary file
         moveTempMetsFileToDestination(temporaryFile, destination, anchorFile);
     }
 
-    private void updateMarcFiles(DocStruct logical, DocStruct anchor, Path temporaryFile, Path anchorFile, List<Path> filesInFolder) {
+    private void updateMarcFiles(DigitalDocument digDoc, Path temporaryFile, Path anchorFile, List<Path> filesInFolder) {
+        DocStruct logical = digDoc.getLogicalDocStruct();
+        DocStruct anchor = null;
+        if (logical.getType().isAnchor()) {
+            anchor = logical;
+            logical = logical.getAllChildren().get(0);
+        }
+
         // Variabes METS/MARC-Export
         String idDigital = null;
         String idSource = null;
