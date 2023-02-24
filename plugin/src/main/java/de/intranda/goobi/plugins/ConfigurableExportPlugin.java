@@ -211,6 +211,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         includeITM = config.getBoolean("./folder/includeITM", false);
         includeValidation = config.getBoolean("./folder/includeValidation", false);
         ocrSuffix = config.getStringArray("./folder/ocr/suffix");
+        log.debug("ocrSuffix == null : " + (ocrSuffix == null));
     }
 
     /**
@@ -255,38 +256,15 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 
         // prepare VariableReplacer
         DigitalDocument digDoc = gdzfile.getDigitalDocument();
-        DocStruct logical = digDoc.getLogicalDocStruct();
         VariableReplacer replacer = new VariableReplacer(digDoc, this.myPrefs, process, null);
 
-        // Variabes METS/MARC-Export
-        String idDigital = null;
-        String idSource = null;
-        String anchorIdDigital = null;
-        String anchorIdSource = null;
         String exportRootDirectory = replacer.replace(process.getProjekt().getDmsImportImagesPath());
 
+        DocStruct logical = digDoc.getLogicalDocStruct();
         DocStruct anchor = null;
-
-        // read INFOS for METS/MARC Export
         if (logical.getType().isAnchor()) {
             anchor = logical;
             logical = logical.getAllChildren().get(0);
-        }
-        for (Metadata md : logical.getAllMetadata()) {
-            if ("CatalogIDSource".equals(md.getType().getName())) {
-                idSource = md.getValue();
-            } else if ("CatalogIDDigital".equals(md.getType().getName())) {
-                idDigital = md.getValue();
-            }
-        }
-        if (anchor != null) {
-            for (Metadata md : anchor.getAllMetadata()) {
-                if ("CatalogIDSource".equals(md.getType().getName())) {
-                    anchorIdSource = md.getValue();
-                } else if ("CatalogIDDigital".equals(md.getType().getName())) {
-                    anchorIdDigital = md.getValue();
-                }
-            }
         }
         trimAllMetadata(gdzfile.getDigitalDocument().getLogicalDocStruct());
 
@@ -320,52 +298,17 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         // copy folders
         performCopyFolders(process, destination);
 
-        // check, if import/xxxx_marc.xml exists
-        Path importDirectory = Paths.get(process.getImportDirectory());
-        Path anchorFile = Paths.get(temporaryFile.getParent().toString(), temporaryFile.getFileName().toString().replace(".xml", "_anchor.xml")); //NOSONAR
-        if (Files.exists(importDirectory)) {
-            List<Path> filesInFolder = StorageProvider.getInstance().listFiles(importDirectory.toString());
-
-            Path sourceMarcFile = null;
-            Path digitalMarcFile = null;
-            Path anchorSourceMarcFile = null;
-            Path anchorDigitalMarcFile = null;
-
-            for (Path path : filesInFolder) {
-                if (path.getFileName().toString().endsWith(idSource + "_marc.xml")) { //NOSONAR
-                    sourceMarcFile = path;
-                } else if (path.getFileName().toString().endsWith(idDigital + "_marc.xml")) {
-                    digitalMarcFile = path;
-                } else if (path.getFileName().toString().endsWith(anchorIdDigital + "_marc.xml")) {
-                    anchorDigitalMarcFile = path;
-                } else if (path.getFileName().toString().endsWith(anchorIdSource + "_marc.xml")) {
-                    anchorSourceMarcFile = path;
-                }
-
-            }
-            // found marc file for monograph/volume
-            if (embedMarc && (digitalMarcFile != null || sourceMarcFile != null)) {
-                updateXmlFile(sourceMarcFile, digitalMarcFile, temporaryFile);
-            }
-            if (embedMarc && Files.exists(anchorFile) && (anchorSourceMarcFile != null || anchorDigitalMarcFile != null)) {
-                updateXmlFile(anchorSourceMarcFile, anchorDigitalMarcFile, anchorFile);
-            }
-        }
-
-        // Copy temporary MetsFile to Destination and delete temporary file
         Path exportedMetsFile = Paths.get(destination.toString(), process.getTitel() + ".xml");
         StorageProvider.getInstance().copyFile(temporaryFile, exportedMetsFile);
-        log.debug("Export Plugin - copy temporaryFile from " + temporaryFile + " to " + exportedMetsFile);
 
-        if (StorageProvider.getInstance().isFileExists(anchorFile)) {
-            StorageProvider.getInstance()
-                    .copyFile(anchorFile, Paths.get(exportedMetsFile.getParent().toString(),
-                            exportedMetsFile.getFileName().toString().replace(".xml", "_anchor.xml")));
-            log.debug("Export Plugin - copy anchorFile from " + anchorFile + " to "
-                    + Paths.get(exportedMetsFile.getParent().toString(), exportedMetsFile.getFileName().toString().replace(".xml", "_anchor.xml")));
-            StorageProvider.getInstance().deleteDir(anchorFile);
-            log.debug("Export Plugin - delete file " + anchorFile);
+        // perform METS/MARC-Export
+        Path importDirectory = Paths.get(process.getImportDirectory());
+        // check, if import/xxxx_marc.xml exists
+        if (Files.exists(importDirectory)) {
+            List<Path> filesInFolder = StorageProvider.getInstance().listFiles(importDirectory.toString());
+            performMetsMarcExport(logical, anchor, temporaryFile, exportedMetsFile, filesInFolder);
         }
+
         StorageProvider.getInstance().deleteFile(temporaryFile);
         log.debug("Export Plugin - delete file " + temporaryFile);
 
@@ -470,7 +413,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         if (type.equals("ocr")) {
             return "Export copy ocr data from " + fromPath + " to " + toPath;
         }
-        String specialInfo = "folder"; // by default
+        String specialInfo = type; // by default
         switch (type) {
             case "derivate":
                 specialInfo = "derivates";
@@ -506,7 +449,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
             String suffix = getOcrPathSuffix(path);
             Path toPath = getDestPathForCopy(process, path, destination, "ocr");
             String debugInfo = getDebugInfo(path, toPath, "ocr");
-            if (ocrSuffixes == null || ocrSuffixes.isEmpty() || ocrSuffixes.contains(suffix)) {
+            if (ocrSuffixes.isEmpty() || ocrSuffixes.contains(suffix)) {
                 if (Files.isDirectory(path)) {
                     StorageProvider.getInstance().copyDirectory(path, toPath, false);
                     log.debug(debugInfo);
@@ -515,6 +458,85 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
                     log.debug(debugInfo);
                 }
             }
+        }
+    }
+
+    private void performMetsMarcExport(DocStruct logical, DocStruct anchor, Path temporaryFile, Path destination,
+            List<Path> filesInFolder) throws IOException {
+
+        Path anchorFile = Paths.get(temporaryFile.getParent().toString(), temporaryFile.getFileName().toString().replace(".xml", "_anchor.xml")); //NOSONAR
+        // update MARC files
+        if (embedMarc) {
+            updateMarcFiles(logical, anchor, temporaryFile, anchorFile, filesInFolder);
+        }
+
+        // Copy temporary MetsFile to Destination and delete temporary file
+        moveTempMetsFileToDestination(temporaryFile, destination, anchorFile);
+    }
+
+    private void updateMarcFiles(DocStruct logical, DocStruct anchor, Path temporaryFile, Path anchorFile, List<Path> filesInFolder) {
+        // Variabes METS/MARC-Export
+        String idDigital = null;
+        String idSource = null;
+        String anchorIdDigital = null;
+        String anchorIdSource = null;
+        // read INFOS for METS/MARC Export
+        for (Metadata md : logical.getAllMetadata()) {
+            if ("CatalogIDSource".equals(md.getType().getName())) {
+                idSource = md.getValue();
+            } else if ("CatalogIDDigital".equals(md.getType().getName())) {
+                idDigital = md.getValue();
+            }
+        }
+        if (anchor != null) {
+            for (Metadata md : anchor.getAllMetadata()) {
+                if ("CatalogIDSource".equals(md.getType().getName())) {
+                    anchorIdSource = md.getValue();
+                } else if ("CatalogIDDigital".equals(md.getType().getName())) {
+                    anchorIdDigital = md.getValue();
+                }
+            }
+        }
+
+        Path sourceMarcFile = null;
+        Path digitalMarcFile = null;
+        Path anchorSourceMarcFile = null;
+        Path anchorDigitalMarcFile = null;
+
+        for (Path path : filesInFolder) {
+            if (path.getFileName().toString().endsWith(idSource + "_marc.xml")) { //NOSONAR
+                sourceMarcFile = path;
+            } else if (path.getFileName().toString().endsWith(idDigital + "_marc.xml")) {
+                digitalMarcFile = path;
+            } else if (path.getFileName().toString().endsWith(anchorIdDigital + "_marc.xml")) {
+                anchorDigitalMarcFile = path;
+            } else if (path.getFileName().toString().endsWith(anchorIdSource + "_marc.xml")) {
+                anchorSourceMarcFile = path;
+            }
+        }
+
+        // found marc file for monograph/volume
+        if (digitalMarcFile != null || sourceMarcFile != null) {
+            updateXmlFile(sourceMarcFile, digitalMarcFile, temporaryFile);
+        }
+        if (Files.exists(anchorFile) && (anchorSourceMarcFile != null || anchorDigitalMarcFile != null)) {
+            updateXmlFile(anchorSourceMarcFile, anchorDigitalMarcFile, anchorFile);
+        }
+    }
+
+    private void moveTempMetsFileToDestination(Path temporaryFile, Path exportedMetsFile, Path anchorFile) throws IOException {
+        String debugInfo = getDebugInfo(temporaryFile, exportedMetsFile, "temporaryFile");
+        log.debug(debugInfo);
+
+        if (StorageProvider.getInstance().isFileExists(anchorFile)) {
+            Path toPath = Paths.get(exportedMetsFile.getParent().toString(),
+                    exportedMetsFile.getFileName().toString().replace(".xml", "_anchor.xml"));
+            StorageProvider.getInstance().copyFile(anchorFile, toPath);
+            debugInfo = getDebugInfo(anchorFile, toPath, "anchorFile");
+            log.debug(debugInfo);
+            // deleteDir (?)
+            StorageProvider.getInstance().deleteDir(anchorFile);
+            log.debug("Export Plugin - delete file " + anchorFile);
         }
     }
 
