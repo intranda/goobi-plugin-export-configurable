@@ -108,6 +108,8 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
             throws IOException, InterruptedException, WriteException, PreferencesException, DocStructHasNoTypeException,
             MetadataTypeNotAllowedException, ExportFileException, UghHelperException, SwapException, DAOException, TypeNotAllowedForParentException {
 
+        log.debug("================= Starting Configurable Export Plugin =================");
+
         // read configuration
         this.myPrefs = process.getRegelsatz().getPreferences();
         SubnodeConfiguration config = getConfig(process);
@@ -251,6 +253,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         // write mets file to temp folder
         writeMetsFile(process, temporaryFile.toString(), gdzfile, false);
 
+        // prepare VariableReplacer
         DigitalDocument digDoc = gdzfile.getDigitalDocument();
         DocStruct logical = digDoc.getLogicalDocStruct();
         VariableReplacer replacer = new VariableReplacer(digDoc, this.myPrefs, process, null);
@@ -261,41 +264,6 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         String anchorIdDigital = null;
         String anchorIdSource = null;
         String exportRootDirectory = replacer.replace(process.getProjekt().getDmsImportImagesPath());
-
-        // prepare folder
-        Path derivateFolder = null;
-        Path masterFolder = null;
-        Path ocrFolder = null;
-        Path sourceFolder = null;
-        Path importFolder = null;
-        Path exportFolder = null;
-        Path itmFolder = null;
-        Path validationFolder = null;
-
-        if (includeDerivate) {
-            derivateFolder = Paths.get(process.getImagesTifDirectory(false));
-        }
-        if (includeMaster) {
-            masterFolder = Paths.get(process.getImagesOrigDirectory(false));
-        }
-        if (includeOcr) {
-            ocrFolder = Paths.get(process.getOcrDirectory());
-        }
-        if (includeSource) {
-            sourceFolder = Paths.get(process.getSourceDirectory());
-        }
-        if (includeImport) {
-            importFolder = Paths.get(process.getImportDirectory());
-        }
-        if (includeExport) {
-            exportFolder = Paths.get(process.getExportDirectory());
-        }
-        if (includeITM) {
-            itmFolder = Paths.get(process.getProcessDataDirectory() + "taskmanager");
-        }
-        if (includeValidation) {
-            validationFolder = Paths.get(process.getProcessDataDirectory() + "validation");
-        }
 
         DocStruct anchor = null;
 
@@ -348,72 +316,9 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
             Files.createDirectories(destination);
             log.debug("Export Plugin - directory created as it did not exist");
         }
-        // copy folder to destination
-        if (masterFolder != null && Files.exists(masterFolder)) {
-            StorageProvider.getInstance()
-                    .copyDirectory(masterFolder, Paths.get(destination.toString(), masterFolder.getFileName().toString()), false);
-            log.debug("Export Plugin - copy masters from " + masterFolder + " to "
-                    + Paths.get(destination.toString(), masterFolder.getFileName().toString()));
-        }
-        for (String configuredFolder : imageFolders) {
-            Path folderPath = Paths.get(process.getConfiguredImageFolder(configuredFolder));
-            if (Files.exists(folderPath)) {
-                StorageProvider.getInstance().copyDirectory(folderPath, destination.resolve(folderPath.getFileName().toString()), false);
-                log.debug("Export Plugin - copy folder from " + folderPath + " to " + destination.resolve(folderPath.getFileName().toString()));
 
-            }
-        }
-        if (ocrFolder != null && Files.exists(ocrFolder)) {
-
-            Set<String> ocrSuffixes = new HashSet<>(Arrays.asList(ocrSuffix));
-            List<Path> ocrData = StorageProvider.getInstance().listFiles(ocrFolder.toString());
-
-            for (Path path : ocrData) {
-                String suffix = getOcrPathSuffix(path);
-                if (ocrSuffixes == null || ocrSuffixes.isEmpty() || ocrSuffixes.contains(suffix)) {
-                    if (Files.isDirectory(path)) {
-                        StorageProvider.getInstance().copyDirectory(path, Paths.get(destination.toString(), path.getFileName().toString()), false);
-                        log.debug("Export copy ocr data from " + path + " to " + Paths.get(destination.toString(), path.getFileName().toString()));
-                    } else {
-                        StorageProvider.getInstance().copyFile(path, Paths.get(destination.toString(), path.getFileName().toString()));
-                        log.debug("Export copy ocr data from " + path + " to " + Paths.get(destination.toString(), path.getFileName().toString()));
-                    }
-                }
-            }
-        }
-        if (sourceFolder != null && Files.exists(sourceFolder)) {
-            StorageProvider.getInstance().copyDirectory(sourceFolder, Paths.get(destination.toString(), process.getTitel() + "_source"), false);
-            log.debug("Export Plugin - copy sourceFolder from " + sourceFolder + " to "
-                    + Paths.get(destination.toString(), process.getTitel() + "_source"));
-        }
-        if (importFolder != null && Files.exists(importFolder)) {
-            StorageProvider.getInstance().copyDirectory(importFolder, Paths.get(destination.toString(), process.getTitel() + "_import"), false);
-            log.debug("Export Plugin - copy importFolder from " + importFolder + " to "
-                    + Paths.get(destination.toString(), process.getTitel() + "_import"));
-        }
-        if (exportFolder != null && Files.exists(exportFolder)) {
-            StorageProvider.getInstance().copyDirectory(exportFolder, Paths.get(destination.toString(), process.getTitel() + "_export"), false);
-            log.debug("Export Plugin - copy exportFolder from " + exportFolder + " to "
-                    + Paths.get(destination.toString(), process.getTitel() + "_export"));
-        }
-        if (itmFolder != null && Files.exists(itmFolder)) {
-            StorageProvider.getInstance().copyDirectory(itmFolder, Paths.get(destination.toString(), itmFolder.getFileName().toString()), false);
-            log.debug("Export Plugin - copy itmFolder from " + itmFolder + " to "
-                    + Paths.get(destination.toString(), itmFolder.getFileName().toString()));
-        }
-
-        if (derivateFolder != null && Files.exists(derivateFolder)) {
-            StorageProvider.getInstance()
-                    .copyDirectory(derivateFolder, Paths.get(destination.toString(), derivateFolder.getFileName().toString()), false);
-            log.debug("Export Plugin - copy derivates from " + derivateFolder + " to "
-                    + Paths.get(destination.toString(), derivateFolder.getFileName().toString()));
-        }
-        if (validationFolder != null && Files.exists(validationFolder)) {
-            StorageProvider.getInstance()
-                    .copyDirectory(validationFolder, Paths.get(destination.toString(), validationFolder.getFileName().toString()), false);
-            log.debug("Export Plugin - copy validationFolder from " + validationFolder + " to "
-                    + Paths.get(destination.toString(), validationFolder.getFileName().toString()));
-        }
+        // copy folders
+        performCopyFolders(process, destination);
 
         // check, if import/xxxx_marc.xml exists
         Path importDirectory = Paths.get(process.getImportDirectory());
@@ -467,6 +372,150 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         process.setProjekt(oldProject);
 
         return true;
+    }
+
+    private void performCopyFolders(Process process, Path destination) throws IOException, SwapException, DAOException {
+        if (includeDerivate) {
+            getFolderAndCopyFolderToDestination(process, destination, "derivate");
+        }
+        if (includeMaster) {
+            getFolderAndCopyFolderToDestination(process, destination, "master");
+        }
+        if (includeOcr) {
+            getFolderAndCopyFolderToDestination(process, destination, "ocr");
+        }
+        if (includeSource) {
+            getFolderAndCopyFolderToDestination(process, destination, "source");
+        }
+        if (includeImport) {
+            getFolderAndCopyFolderToDestination(process, destination, "import");
+        }
+        if (includeExport) {
+            getFolderAndCopyFolderToDestination(process, destination, "export");
+        }
+        if (includeITM) {
+            getFolderAndCopyFolderToDestination(process, destination, "itm");
+        }
+        if (includeValidation) {
+            getFolderAndCopyFolderToDestination(process, destination, "validation");
+        }
+        for (String configuredFolder : imageFolders) {
+            Path folderPath = Paths.get(process.getConfiguredImageFolder(configuredFolder));
+            Path toPath = getDestPathForCopy(process, folderPath, destination, "folder");
+            copyFolderToDestination(folderPath, toPath, "folder");
+        }
+    }
+
+    private void getFolderAndCopyFolderToDestination(Process process, Path destination, String folderType)
+            throws IOException, SwapException, DAOException {
+        Path fromPath = getSourcePathForCopy(process, folderType);
+        if (fromPath == null || !Files.exists(fromPath)) {
+            return;
+        }
+        if (folderType.equals("ocr")) {
+            copyOcrFolderToDestination(process, fromPath, destination);
+        } else {
+            Path toPath = getDestPathForCopy(process, fromPath, destination, folderType);
+            copyFolderToDestination(fromPath, toPath, folderType);
+        }
+    }
+
+    private Path getSourcePathForCopy(Process process, String folderType) throws IOException, SwapException, DAOException {
+        switch (folderType) {
+            case "derivate":
+                return Paths.get(process.getImagesTifDirectory(false));
+            case "master":
+                return Paths.get(process.getImagesOrigDirectory(false));
+            case "ocr":
+                return Paths.get(process.getOcrDirectory());
+            case "source":
+                return Paths.get(process.getSourceDirectory());
+            case "import":
+                return Paths.get(process.getImportDirectory());
+            case "export":
+                return Paths.get(process.getExportDirectory());
+            case "itm":
+                return Paths.get(process.getProcessDataDirectory() + "taskmanager");
+            case "validation":
+                return Paths.get(process.getProcessDataDirectory() + "validation");
+            default:
+                return null;
+        }
+    }
+
+    private Path getDestPathForCopy(Process process, Path fromPath, Path destination, String folderType) {
+        switch(folderType) {
+            case "source":
+                return Paths.get(destination.toString(), process.getTitel() + "_source");
+            case "import":
+                return Paths.get(destination.toString(), process.getTitel() + "_import");
+            case "export":
+                return Paths.get(destination.toString(), process.getTitel() + "_export");
+            case "folder":
+                return destination.resolve(fromPath.getFileName().toString());
+            default:
+                return Paths.get(destination.toString(), fromPath.getFileName().toString());
+        }
+    }
+
+    private void copyFolderToDestination(Path fromPath, Path toPath, String folderType) throws IOException {
+        if (Files.exists(fromPath)) {
+            String debugInfo = getDebugInfo(fromPath, toPath, folderType);
+            StorageProvider.getInstance().copyDirectory(fromPath, toPath, false);
+            log.debug(debugInfo);
+        }
+    }
+
+    private String getDebugInfo(Path fromPath, Path toPath, String type) {
+        if (type.equals("ocr")) {
+            return "Export copy ocr data from " + fromPath + " to " + toPath;
+        }
+        String specialInfo = "folder"; // by default
+        switch (type) {
+            case "derivate":
+                specialInfo = "derivates";
+                break;
+            case "master":
+                specialInfo = "masters";
+                break;
+            case "source":
+                specialInfo = "sourceFolder";
+                break;
+            case "import":
+                specialInfo = "importFolder";
+                break;
+            case "export":
+                specialInfo = "exportFolder";
+                break;
+            case "itm":
+                specialInfo = "itmFolder";
+                break;
+            case "validation":
+                specialInfo = "validationFolder";
+                break;
+        }
+        return "Export Plugin - copy " + specialInfo + " from " + fromPath + " to " + toPath;
+    }
+
+    private void copyOcrFolderToDestination(Process process, Path ocrFolder, Path destination) throws IOException {
+
+        Set<String> ocrSuffixes = new HashSet<>(Arrays.asList(ocrSuffix));
+        List<Path> ocrData = StorageProvider.getInstance().listFiles(ocrFolder.toString());
+
+        for (Path path : ocrData) {
+            String suffix = getOcrPathSuffix(path);
+            Path toPath = getDestPathForCopy(process, path, destination, "ocr");
+            String debugInfo = getDebugInfo(path, toPath, "ocr");
+            if (ocrSuffixes == null || ocrSuffixes.isEmpty() || ocrSuffixes.contains(suffix)) {
+                if (Files.isDirectory(path)) {
+                    StorageProvider.getInstance().copyDirectory(path, toPath, false);
+                    log.debug(debugInfo);
+                } else {
+                    StorageProvider.getInstance().copyFile(path, toPath);
+                    log.debug(debugInfo);
+                }
+            }
+        }
     }
 
     /**
