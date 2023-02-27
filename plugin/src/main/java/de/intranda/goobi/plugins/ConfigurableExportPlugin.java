@@ -7,10 +7,15 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.configuration.SubnodeConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
 import org.apache.commons.configuration.reloading.FileChangedReloadingStrategy;
@@ -64,6 +69,8 @@ import ugh.exceptions.WriteException;
 public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin, IPlugin {
 
     private static final Namespace metsNamespace = Namespace.getNamespace("mets", "http://www.loc.gov/METS/");
+    private static final String FOLDERS_PARENT_ELEMENT = "includeFolders";
+    private static final String GENERIC_FOLDER = "genericFolder";
     @Getter
     private PluginType type = PluginType.Export;
 
@@ -72,6 +79,8 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 
     private boolean embedMarc;
     private Project oldProject;
+
+    private SubnodeConfiguration foldersConfig;
 
     private String[] imageFolders;
     private boolean includeDerivate;
@@ -201,17 +210,18 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         oldProject = process.getProjekt();
         log.debug("Export Plugin - Original Project: " + oldProject.getTitel());
 
-        imageFolders = config.getStringArray("./folder/genericFolder");
-        includeDerivate = config.getBoolean("./folder/includeMedia", false);
-        includeMaster = config.getBoolean("./folder/includeMaster", false);
-        includeOcr = config.getBoolean("./folder/includeOcr", false);
-        includeSource = config.getBoolean("./folder/includeSource", false);
-        includeImport = config.getBoolean("./folder/includeImport", false);
-        includeExport = config.getBoolean("./folder/includeExport", false);
-        includeITM = config.getBoolean("./folder/includeITM", false);
-        includeValidation = config.getBoolean("./folder/includeValidation", false);
-        ocrSuffix = config.getStringArray("./folder/ocr/suffix");
-        log.debug("ocrSuffix == null : " + (ocrSuffix == null));
+        foldersConfig = config.configurationAt(FOLDERS_PARENT_ELEMENT);
+
+        imageFolders = foldersConfig.getStringArray(GENERIC_FOLDER);
+        includeDerivate = foldersConfig.getBoolean("./media/@enabled", false);
+        includeMaster = foldersConfig.getBoolean("./master/@enabled", false);
+        includeOcr = foldersConfig.getBoolean("./ocr/@enabled", false);
+        includeSource = foldersConfig.getBoolean("./source/@enabled", false);
+        includeImport = foldersConfig.getBoolean("./import/@enabled", false);
+        includeExport = foldersConfig.getBoolean("./export/@enabled", false);
+        includeITM = foldersConfig.getBoolean("./itm/@enabled", false);
+        includeValidation = foldersConfig.getBoolean("./validation/@enabled", false);
+        ocrSuffix = foldersConfig.getStringArray("./ocr/sourceFolderSuffix");
     }
 
     /**
@@ -249,6 +259,9 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 
         // use the goobi internal temp folder instead of the system one
         Path temporaryFile = Paths.get(ConfigurationHelper.getInstance().getTemporaryFolder(), process.getTitel() + ".xml");
+        if (StorageProvider.getInstance().isFileExists(temporaryFile)) {
+            StorageProvider.getInstance().deleteFile(temporaryFile);
+        }
         StorageProvider.getInstance().createFile(temporaryFile);
 
         // write mets file to temp folder
@@ -310,7 +323,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 
     private void performCopyFolders(Process process, Path destination) throws IOException, SwapException, DAOException {
         if (includeDerivate) {
-            getFolderAndCopyFolderToDestination(process, destination, "derivate");
+            getFolderAndCopyFolderToDestination(process, destination, "media");
         }
         if (includeMaster) {
             getFolderAndCopyFolderToDestination(process, destination, "master");
@@ -333,10 +346,17 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         if (includeValidation) {
             getFolderAndCopyFolderToDestination(process, destination, "validation");
         }
-        for (String configuredFolder : imageFolders) {
+
+        // process generic folders
+        List<HierarchicalConfiguration> genericFolderConfigNodes = foldersConfig.configurationsAt(GENERIC_FOLDER);
+
+        for (int i = 0; i < imageFolders.length; ++i) {
+            String configuredFolder = imageFolders[i];
             Path folderPath = Paths.get(process.getConfiguredImageFolder(configuredFolder));
-            Path toPath = getDestPathForCopy(process, folderPath, destination, "folder");
-            copyFolderToDestination(folderPath, toPath, "folder");
+            log.debug("configuredFolder = " + configuredFolder);
+            log.debug("folderPath = " + folderPath);
+            SubnodeConfiguration genericFolderConfig = (SubnodeConfiguration) genericFolderConfigNodes.get(i);
+            getDestPathAndCopyFolder(process, genericFolderConfig, folderPath, destination, GENERIC_FOLDER);
         }
     }
 
@@ -349,14 +369,14 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         if (folderType.equals("ocr")) {
             copyOcrFolderToDestination(process, fromPath, destination);
         } else {
-            Path toPath = getDestPathForCopy(process, fromPath, destination, folderType);
-            copyFolderToDestination(fromPath, toPath, folderType);
+            SubnodeConfiguration subnodeConfig = foldersConfig.configurationAt(folderType);
+            getDestPathAndCopyFolder(process, subnodeConfig, fromPath, destination, folderType);
         }
     }
 
     private Path getSourcePathForCopy(Process process, String folderType) throws IOException, SwapException, DAOException {
         switch (folderType) {
-            case "derivate":
+            case "media":
                 return Paths.get(process.getImagesTifDirectory(false));
             case "master":
                 return Paths.get(process.getImagesOrigDirectory(false));
@@ -377,7 +397,55 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         }
     }
 
-    private Path getDestPathForCopy(Process process, Path fromPath, Path destination, String folderType) {
+    private void getDestPathAndCopyFolder(Process process, SubnodeConfiguration subnodeConfig, Path fromPath, Path destination, String folderType)
+            throws IOException {
+        // get the values of the subelement <destinationFolder />
+        HashMap<String, String> destFolderMap = getDestFolderMap(subnodeConfig);
+
+        if (destFolderMap.isEmpty()) {
+            log.debug("no destinationFolder specified for '" + folderType + "', using default settings instead...");
+            Path toPath = getDefaultDestPathForCopy(process, fromPath, destination, folderType);
+            copyFolderToDestination(fromPath, toPath, folderType);
+            return;
+        }
+
+        // destFolderMap is not empty
+        log.debug("destinationFolder specified for '" + folderType + "' with destFolderMap.size() = " + destFolderMap.size());
+
+        for (Map.Entry<String, String> entry : destFolderMap.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+
+            // create a folder by the name of key
+            Path toPath = Paths.get(destination.toString(), key);
+            if (!StorageProvider.getInstance().isFileExists(toPath)) {
+                StorageProvider.getInstance().createDirectories(toPath);
+            }
+
+            if (value.equals("")) {
+                log.debug("No pattern specified, '" + key + "' will be left empty.");
+                continue;
+            }
+
+            log.debug("Files matching the pattern '" + value + "' should be copied to -> '" + key + "'");
+
+            // get a Pattern using value
+            Pattern pattern = Pattern.compile(value);
+
+            // iterate over the files in fromPath, copy everything whose name matches the Pattern to this new folder
+            List<Path> files = StorageProvider.getInstance().listFiles(fromPath.toString());
+            for (Path file : files) {
+                String fileName = file.getFileName().toString();
+                Matcher matcher = pattern.matcher(fileName);
+                if (matcher.find()) {
+                    Path newFilePath = toPath.resolve(fileName);
+                    StorageProvider.getInstance().copyFile(file, newFilePath);
+                }
+            }
+        }
+    }
+
+    private Path getDefaultDestPathForCopy(Process process, Path fromPath, Path destination, String folderType) {
         switch(folderType) {
             case "source":
                 return Paths.get(destination.toString(), process.getTitel() + "_source");
@@ -385,11 +453,22 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
                 return Paths.get(destination.toString(), process.getTitel() + "_import");
             case "export":
                 return Paths.get(destination.toString(), process.getTitel() + "_export");
-            case "folder":
+            case GENERIC_FOLDER:
                 return destination.resolve(fromPath.getFileName().toString());
             default:
                 return Paths.get(destination.toString(), fromPath.getFileName().toString());
         }
+    }
+
+    private HashMap<String, String> getDestFolderMap(SubnodeConfiguration subnodeConfig) {
+        HashMap<String, String> destFolderMap = new HashMap<>();
+        List<HierarchicalConfiguration> destinationFolderList = subnodeConfig.configurationsAt("./destinationFolder");
+        for (HierarchicalConfiguration destConfig : destinationFolderList) {
+            String name = destConfig.getString("./@name");
+            String exportFileRegex = destConfig.getString("./@exportFileRegex", "");
+            destFolderMap.put(name, exportFileRegex);
+        }
+        return destFolderMap;
     }
 
     private void copyFolderToDestination(Path fromPath, Path toPath, String folderType) throws IOException {
@@ -406,7 +485,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         }
         String specialInfo = type; // by default
         switch (type) {
-            case "derivate":
+            case "media":
                 specialInfo = "derivates";
                 break;
             case "master":
@@ -438,7 +517,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 
         for (Path path : ocrData) {
             String suffix = getOcrPathSuffix(path);
-            Path toPath = getDestPathForCopy(process, path, destination, "ocr");
+            Path toPath = getDefaultDestPathForCopy(process, path, destination, "ocr");
             String debugInfo = getDebugInfo(path, toPath, "ocr");
             if (ocrSuffixes.isEmpty() || ocrSuffixes.contains(suffix)) {
                 if (Files.isDirectory(path)) {
