@@ -143,7 +143,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
             String message = "Malformated Configurationfile: Missing Attribute in target tag!";
             log.error(message);
             Helper.setFehlerMeldung(null, process.getTitel() + ": ", message);
-            Helper.addMessageToProcessLog(process.getId(), LogType.DEBUG, message);
+            Helper.addMessageToProcessJournal(processId, LogType.DEBUG, message);
             problems.add(message);
             return false;
         }
@@ -154,7 +154,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         } catch (ReadException ex) {
             String message = "Couldn't create Variable replacer!";
             Helper.setFehlerMeldung(message, ex);
-            Helper.addMessageToProcessLog(process.getId(), LogType.DEBUG, message);
+            Helper.addMessageToProcessJournal(processId, LogType.DEBUG, message);
             log.error(message, ex);
             problems.add(message + ex.getMessage());
             return false;
@@ -175,7 +175,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
                             + " does not exist. Please update the configuration file!";
                     log.error(message, ex);
                     Helper.setFehlerMeldung(message, ex);
-                    Helper.addMessageToProcessLog(process.getId(), LogType.DEBUG, message);
+                    Helper.addMessageToProcessJournal(processId, LogType.DEBUG, message);
                     problems.add(message + ex.getMessage());
                     return false;
                 }
@@ -195,7 +195,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
                     log.error(message);
                     problems.add(message);
                     Helper.setMeldung(null, process.getTitel() + ": ", message);
-                    Helper.addMessageToProcessLog(process.getId(), LogType.DEBUG, message);
+                    Helper.addMessageToProcessJournal(processId, LogType.DEBUG, message);
                     process.setProjekt(oldProject);
                     return false;
                 }
@@ -258,7 +258,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         } catch (Exception e) {
             String message = "Export canceled opening FileFormat or reading DigitalDocument: ";
             Helper.setFehlerMeldung(Helper.getTranslation("exportError") + process.getTitel(), e);
-            Helper.addMessageToProcessLog(process.getId(), LogType.DEBUG, message);
+            Helper.addMessageToProcessJournal(processId, LogType.DEBUG, message);
             log.error(message, e);
             problems.add(message + e.getMessage());
             return false;
@@ -677,7 +677,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         } catch (JDOMException | IOException e) {
             String message = "Cannot add marc file to process: ";
             Helper.setFehlerMeldung(message + metsFile.toString(), e);
-            Helper.addMessageToProcessLog(processId, LogType.DEBUG, message);
+            Helper.addMessageToProcessJournal(processId, LogType.DEBUG, message);
             problems.add("Cannot add marc file to process: " + e.getMessage());
             return false;
         }
