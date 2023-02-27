@@ -143,7 +143,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         if (targetProjectNames.length != targetKeys.length) {
             String message = "Malformated Configurationfile: Missing Attribute in target tag!";
             log.error(message);
-            Helper.setFehlerMeldung(null, process.getTitel() + ": ", message);
+            Helper.setFehlerMeldung(null, processTitle + ": ", message);
             Helper.addMessageToProcessJournal(processId, LogType.DEBUG, message);
             problems.add(message);
             return false;
@@ -195,7 +195,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
                     String message = "Export cancelled! Export with Parameters of Project" + project.getTitel() + "failed!";
                     log.error(message);
                     problems.add(message);
-                    Helper.setMeldung(null, process.getTitel() + ": ", message);
+                    Helper.setMeldung(null, processTitle + ": ", message);
                     Helper.addMessageToProcessJournal(processId, LogType.DEBUG, message);
                     process.setProjekt(oldProject);
                     return false;
@@ -260,7 +260,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 
         } catch (Exception e) {
             String message = "Export canceled opening FileFormat or reading DigitalDocument: ";
-            Helper.setFehlerMeldung(Helper.getTranslation("exportError") + process.getTitel(), e);
+            Helper.setFehlerMeldung(Helper.getTranslation("exportError") + processTitle, e);
             Helper.addMessageToProcessJournal(processId, LogType.DEBUG, message);
             log.error(message, e);
             problems.add(message + e.getMessage());
@@ -270,7 +270,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         // use the system tmp folder
 
         // use the goobi internal temp folder instead of the system one
-        Path temporaryFile = Paths.get(ConfigurationHelper.getInstance().getTemporaryFolder(), process.getTitel() + ".xml");
+        Path temporaryFile = Paths.get(ConfigurationHelper.getInstance().getTemporaryFolder(), processTitle + ".xml");
         if (StorageProvider.getInstance().isFileExists(temporaryFile)) {
             StorageProvider.getInstance().deleteFile(temporaryFile);
         }
@@ -299,7 +299,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 
         Path destination;
         if (process.getProjekt().isDmsImportCreateProcessFolder()) {
-            destination = Paths.get(exportRootDirectory, process.getTitel());
+            destination = Paths.get(exportRootDirectory, processTitle);
         } else {
             destination = Paths.get(exportRootDirectory);
         }
@@ -313,7 +313,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         performCopyFolders(process, destination);
 
         // copy the METS file to destination
-        Path exportedMetsFile = Paths.get(destination.toString(), process.getTitel() + ".xml");
+        Path exportedMetsFile = Paths.get(destination.toString(), processTitle + ".xml");
         StorageProvider.getInstance().copyFile(temporaryFile, exportedMetsFile);
 
         // perform METS/MARC-Export
