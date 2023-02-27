@@ -67,9 +67,19 @@ import ugh.exceptions.WriteException;
 
 public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin, IPlugin {
 
-    private static final Namespace metsNamespace = Namespace.getNamespace("mets", "http://www.loc.gov/METS/");
+    private static final Namespace METS_NAMESPACE = Namespace.getNamespace("mets", "http://www.loc.gov/METS/");
     private static final String FOLDERS_PARENT_ELEMENT = "includeFolders";
     private static final String GENERIC_FOLDER = "genericFolder";
+    private static final String MASTER_FOLDER = "master";
+    private static final String MEDIA_FOLDER = "media";
+    private static final String SOURCE_FOLDER = "source";
+    private static final String IMPORT_FOLDER = "import";
+    private static final String EXPORT_FOLDER = "export";
+    private static final String VALIDATION_FOLDER = "validation";
+    private static final String OCR_FOLDER = "ocr";
+    private static final String ITM_FOLDER = "itm";
+    private static final String ENABLED_PROPERTY = "/@enabled";
+
     @Getter
     private PluginType type = PluginType.Export;
 
@@ -212,15 +222,15 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         foldersConfig = config.configurationAt(FOLDERS_PARENT_ELEMENT);
 
         imageFolders = foldersConfig.getStringArray(GENERIC_FOLDER);
-        includeDerivate = foldersConfig.getBoolean("./media/@enabled", false);
-        includeMaster = foldersConfig.getBoolean("./master/@enabled", false);
-        includeOcr = foldersConfig.getBoolean("./ocr/@enabled", false);
-        includeSource = foldersConfig.getBoolean("./source/@enabled", false);
-        includeImport = foldersConfig.getBoolean("./import/@enabled", false);
-        includeExport = foldersConfig.getBoolean("./export/@enabled", false);
-        includeITM = foldersConfig.getBoolean("./itm/@enabled", false);
-        includeValidation = foldersConfig.getBoolean("./validation/@enabled", false);
-        ocrSuffix = foldersConfig.getStringArray("./ocr/sourceFolderSuffix");
+        includeDerivate = foldersConfig.getBoolean(MEDIA_FOLDER + ENABLED_PROPERTY, false);
+        includeMaster = foldersConfig.getBoolean(MASTER_FOLDER + ENABLED_PROPERTY, false);
+        includeOcr = foldersConfig.getBoolean(OCR_FOLDER + ENABLED_PROPERTY, false);
+        includeSource = foldersConfig.getBoolean(SOURCE_FOLDER + ENABLED_PROPERTY, false);
+        includeImport = foldersConfig.getBoolean(IMPORT_FOLDER + ENABLED_PROPERTY, false);
+        includeExport = foldersConfig.getBoolean(EXPORT_FOLDER + ENABLED_PROPERTY, false);
+        includeITM = foldersConfig.getBoolean(ITM_FOLDER + ENABLED_PROPERTY, false);
+        includeValidation = foldersConfig.getBoolean(VALIDATION_FOLDER + ENABLED_PROPERTY, false);
+        ocrSuffix = foldersConfig.getStringArray(OCR_FOLDER + "/sourceFolderSuffix");
     }
 
     /**
@@ -322,28 +332,28 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 
     private void performCopyFolders(Process process, Path destination) throws IOException, SwapException, DAOException {
         if (includeDerivate) {
-            getFolderAndCopyFolderToDestination(process, destination, "media");
+            getFolderAndCopyFolderToDestination(process, destination, MEDIA_FOLDER);
         }
         if (includeMaster) {
-            getFolderAndCopyFolderToDestination(process, destination, "master");
+            getFolderAndCopyFolderToDestination(process, destination, MASTER_FOLDER);
         }
         if (includeOcr) {
-            getFolderAndCopyFolderToDestination(process, destination, "ocr");
+            getFolderAndCopyFolderToDestination(process, destination, OCR_FOLDER);
         }
         if (includeSource) {
-            getFolderAndCopyFolderToDestination(process, destination, "source");
+            getFolderAndCopyFolderToDestination(process, destination, SOURCE_FOLDER);
         }
         if (includeImport) {
-            getFolderAndCopyFolderToDestination(process, destination, "import");
+            getFolderAndCopyFolderToDestination(process, destination, IMPORT_FOLDER);
         }
         if (includeExport) {
-            getFolderAndCopyFolderToDestination(process, destination, "export");
+            getFolderAndCopyFolderToDestination(process, destination, EXPORT_FOLDER);
         }
         if (includeITM) {
-            getFolderAndCopyFolderToDestination(process, destination, "itm");
+            getFolderAndCopyFolderToDestination(process, destination, ITM_FOLDER);
         }
         if (includeValidation) {
-            getFolderAndCopyFolderToDestination(process, destination, "validation");
+            getFolderAndCopyFolderToDestination(process, destination, VALIDATION_FOLDER);
         }
 
         // process generic folders
@@ -365,7 +375,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         if (fromPath == null || !StorageProvider.getInstance().isFileExists(fromPath)) {
             return;
         }
-        if (folderType.equals("ocr")) {
+        if (folderType.equals(OCR_FOLDER)) {
             copyOcrFolderToDestination(process, fromPath, destination);
         } else {
             SubnodeConfiguration subnodeConfig = foldersConfig.configurationAt(folderType);
@@ -375,22 +385,22 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 
     private Path getSourcePathForCopy(Process process, String folderType) throws IOException, SwapException, DAOException {
         switch (folderType) {
-            case "media":
+            case MEDIA_FOLDER:
                 return Paths.get(process.getImagesTifDirectory(false));
-            case "master":
+            case MASTER_FOLDER:
                 return Paths.get(process.getImagesOrigDirectory(false));
-            case "ocr":
+            case OCR_FOLDER:
                 return Paths.get(process.getOcrDirectory());
-            case "source":
+            case SOURCE_FOLDER:
                 return Paths.get(process.getSourceDirectory());
-            case "import":
+            case IMPORT_FOLDER:
                 return Paths.get(process.getImportDirectory());
-            case "export":
+            case EXPORT_FOLDER:
                 return Paths.get(process.getExportDirectory());
-            case "itm":
+            case ITM_FOLDER:
                 return Paths.get(process.getProcessDataDirectory() + "taskmanager");
-            case "validation":
-                return Paths.get(process.getProcessDataDirectory() + "validation");
+            case VALIDATION_FOLDER:
+                return Paths.get(process.getProcessDataDirectory() + VALIDATION_FOLDER);
             default:
                 return null;
         }
@@ -446,11 +456,11 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 
     private Path getDefaultDestPathForCopy(Process process, Path fromPath, Path destination, String folderType) {
         switch(folderType) {
-            case "source":
+            case SOURCE_FOLDER:
                 return Paths.get(destination.toString(), process.getTitel() + "_source");
-            case "import":
+            case IMPORT_FOLDER:
                 return Paths.get(destination.toString(), process.getTitel() + "_import");
-            case "export":
+            case EXPORT_FOLDER:
                 return Paths.get(destination.toString(), process.getTitel() + "_export");
             case GENERIC_FOLDER:
                 return destination.resolve(fromPath.getFileName().toString());
@@ -479,30 +489,30 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
     }
 
     private String getDebugInfo(Path fromPath, Path toPath, String type) {
-        if (type.equals("ocr")) {
+        if (type.equals(OCR_FOLDER)) {
             return "Export copy ocr data from " + fromPath + " to " + toPath;
         }
         String specialInfo = type; // by default
         switch (type) {
-            case "media":
+            case MEDIA_FOLDER:
                 specialInfo = "derivates";
                 break;
-            case "master":
+            case MASTER_FOLDER:
                 specialInfo = "masters";
                 break;
-            case "source":
+            case SOURCE_FOLDER:
                 specialInfo = "sourceFolder";
                 break;
-            case "import":
+            case IMPORT_FOLDER:
                 specialInfo = "importFolder";
                 break;
-            case "export":
+            case EXPORT_FOLDER:
                 specialInfo = "exportFolder";
                 break;
-            case "itm":
+            case ITM_FOLDER:
                 specialInfo = "itmFolder";
                 break;
-            case "validation":
+            case VALIDATION_FOLDER:
                 specialInfo = "validationFolder";
                 break;
         }
@@ -516,8 +526,8 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 
         for (Path path : ocrData) {
             String suffix = getOcrPathSuffix(path);
-            Path toPath = getDefaultDestPathForCopy(process, path, destination, "ocr");
-            String debugInfo = getDebugInfo(path, toPath, "ocr");
+            Path toPath = getDefaultDestPathForCopy(process, path, destination, OCR_FOLDER);
+            String debugInfo = getDebugInfo(path, toPath, OCR_FOLDER);
             if (ocrSuffixes.isEmpty() || ocrSuffixes.contains(suffix)) {
                 if (StorageProvider.getInstance().isDirectory(path)) {
                     StorageProvider.getInstance().copyDirectory(path, toPath, false);
@@ -642,13 +652,13 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
 
             Document metsDoc = parser.build(metsFile.toString());
             Element metsElement = metsDoc.getRootElement();
-            Element firstDmdSecElement = metsElement.getChild("dmdSec", metsNamespace);
+            Element firstDmdSecElement = metsElement.getChild("dmdSec", METS_NAMESPACE);
 
-            Element mdWrap = new Element("mdWrap", metsNamespace);
+            Element mdWrap = new Element("mdWrap", METS_NAMESPACE);
             mdWrap.setAttribute("MDTYPE", "MARC");
             firstDmdSecElement.addContent(mdWrap);
 
-            Element xmlData = new Element("xmlData", metsNamespace);
+            Element xmlData = new Element("xmlData", METS_NAMESPACE);
             mdWrap.addContent(xmlData);
             if (digitalMarcFile != null) {
                 digitalMarcElement.setName("marc");
