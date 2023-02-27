@@ -2,7 +2,6 @@ package de.intranda.goobi.plugins;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -292,8 +291,8 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
             destination = Paths.get(exportRootDirectory);
         }
         log.debug("Export Plugin - directory: " + destination);
-        if (!Files.exists(destination)) {
-            Files.createDirectories(destination);
+        if (!StorageProvider.getInstance().isFileExists(destination)) {
+            StorageProvider.getInstance().createDirectories(destination);
             log.debug("Export Plugin - directory created as it did not exist");
         }
 
@@ -307,7 +306,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         // perform METS/MARC-Export
         Path importDirectory = Paths.get(process.getImportDirectory());
         // check, if import/xxxx_marc.xml exists
-        if (Files.exists(importDirectory)) {
+        if (StorageProvider.getInstance().isFileExists(importDirectory)) {
             List<Path> filesInFolder = StorageProvider.getInstance().listFiles(importDirectory.toString());
             performMetsMarcExport(digDoc, temporaryFile, exportedMetsFile, filesInFolder);
         }
@@ -363,7 +362,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
     private void getFolderAndCopyFolderToDestination(Process process, Path destination, String folderType)
             throws IOException, SwapException, DAOException {
         Path fromPath = getSourcePathForCopy(process, folderType);
-        if (fromPath == null || !Files.exists(fromPath)) {
+        if (fromPath == null || !StorageProvider.getInstance().isFileExists(fromPath)) {
             return;
         }
         if (folderType.equals("ocr")) {
@@ -472,7 +471,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
     }
 
     private void copyFolderToDestination(Path fromPath, Path toPath, String folderType) throws IOException {
-        if (Files.exists(fromPath)) {
+        if (StorageProvider.getInstance().isFileExists(fromPath)) {
             String debugInfo = getDebugInfo(fromPath, toPath, folderType);
             StorageProvider.getInstance().copyDirectory(fromPath, toPath, false);
             log.debug(debugInfo);
@@ -520,7 +519,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
             Path toPath = getDefaultDestPathForCopy(process, path, destination, "ocr");
             String debugInfo = getDebugInfo(path, toPath, "ocr");
             if (ocrSuffixes.isEmpty() || ocrSuffixes.contains(suffix)) {
-                if (Files.isDirectory(path)) {
+                if (StorageProvider.getInstance().isDirectory(path)) {
                     StorageProvider.getInstance().copyDirectory(path, toPath, false);
                     log.debug(debugInfo);
                 } else {
@@ -596,7 +595,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         if (digitalMarcFile != null || sourceMarcFile != null) {
             updateXmlFile(sourceMarcFile, digitalMarcFile, temporaryFile);
         }
-        if (Files.exists(anchorFile) && (anchorSourceMarcFile != null || anchorDigitalMarcFile != null)) {
+        if (StorageProvider.getInstance().isFileExists(anchorFile) && (anchorSourceMarcFile != null || anchorDigitalMarcFile != null)) {
             updateXmlFile(anchorSourceMarcFile, anchorDigitalMarcFile, anchorFile);
         }
     }
