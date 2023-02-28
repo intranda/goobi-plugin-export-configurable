@@ -104,6 +104,12 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
     private String processTitle;
     String[] ocrSuffix;
 
+    /**
+     * get the SubnodeConfiguration
+     * 
+     * @param process Goobi process
+     * @return SubnodeConfiguration object
+     */
     public SubnodeConfiguration getConfig(Process process) {
         String projectName = process.getProjekt().getTitel();
         XMLConfiguration xmlConfig = ConfigPlugins.getPluginConfig(title);
@@ -122,6 +128,9 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         return conf;
     }
 
+    /**
+     * START POINT
+     */
     @Override
     public boolean startExport(Process process, String inZielVerzeichnis)
             throws IOException, InterruptedException, WriteException, PreferencesException, DocStructHasNoTypeException,
@@ -212,6 +221,12 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         return true;
     }
 
+    /**
+     * initialize all private fields for later use
+     * 
+     * @param process Goobi process
+     * @param config SubnodeConfiguration
+     */
     private void initializePrivateFields(Process process, SubnodeConfiguration config) {
         embedMarc = config.getBoolean("./includeMarcXml", false);
         processId = process.getId();
@@ -240,7 +255,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
      * executes an Export for a given process
      * 
      * @param process process that shall be exported
-     * @return
+     * @return true if the process is successfully exported, false otherwise
      * @throws IOException
      * @throws InterruptedException
      * @throws SwapException
@@ -333,6 +348,15 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         return true;
     }
 
+    /**
+     * manage the copy process of folders
+     * 
+     * @param process process that shall be exported
+     * @param destination Path to which the folders should be copied
+     * @throws IOException
+     * @throws SwapException
+     * @throws DAOException
+     */
     private void performCopyFolders(Process process, Path destination) throws IOException, SwapException, DAOException {
         if (includeDerivate) {
             getFolderAndCopyFolderToDestination(process, destination, MEDIA_FOLDER);
@@ -372,6 +396,16 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         }
     }
 
+    /**
+     * get the source folder path and manage the further copy process
+     * 
+     * @param process process that shall be exported
+     * @param destination Path to which the folders should be copied
+     * @param folderType String used to control the differences between different folder types
+     * @throws IOException
+     * @throws SwapException
+     * @throws DAOException
+     */
     private void getFolderAndCopyFolderToDestination(Process process, Path destination, String folderType)
             throws IOException, SwapException, DAOException {
         Path fromPath = getSourcePathForCopy(process, folderType);
@@ -386,6 +420,16 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         }
     }
 
+    /**
+     * get the source folder path
+     * 
+     * @param process process that shall be exported
+     * @param folderType String used to control the differences between different folder types
+     * @return Path of the source folder for the copy process, null if the folderType is not accepted.
+     * @throws IOException
+     * @throws SwapException
+     * @throws DAOException
+     */
     private Path getSourcePathForCopy(Process process, String folderType) throws IOException, SwapException, DAOException {
         switch (folderType) {
             case MEDIA_FOLDER:
@@ -409,6 +453,15 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         }
     }
 
+    /**
+     * get the targeted path and copy the folder there
+     * 
+     * @param subnodeConfig SubnodeConfiguration specifying which folder is in progress
+     * @param fromPath Path from which the copy process should get the original data
+     * @param destination Path to which the data should be copied
+     * @param folderType String used to control the differences between different folder types
+     * @throws IOException
+     */
     private void getDestPathAndCopyFolder(SubnodeConfiguration subnodeConfig, Path fromPath, Path destination, String folderType)
             throws IOException {
         // get the values of the subelement <destinationFolder />
@@ -457,6 +510,14 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         }
     }
 
+    /**
+     * get the default targeted path for the copy process
+     * 
+     * @param fromPath Path from which the copy process should get the original data
+     * @param destination Path to which the data should be copied
+     * @param folderType String used to control the differences between different folder types
+     * @return the default targeted path for the copy process
+     */
     private Path getDefaultDestPathForCopy(Path fromPath, Path destination, String folderType) {
         switch(folderType) {
             case SOURCE_FOLDER:
@@ -472,6 +533,12 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         }
     }
 
+    /**
+     * go through the configured <destinationFolder> elements and store its attributes' values in a HashMap
+     * 
+     * @param subnodeConfig SubnodeConfiguration specifying which folder is in progress
+     * @return a HashMap with attribute '@name' being its key and '@exportFileRegex' being its value.
+     */
     private HashMap<String, String> getDestFolderMap(SubnodeConfiguration subnodeConfig) {
         HashMap<String, String> destFolderMap = new HashMap<>();
         List<HierarchicalConfiguration> destinationFolderList = subnodeConfig.configurationsAt("./destinationFolder");
@@ -483,6 +550,14 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         return destFolderMap;
     }
 
+    /**
+     * copy the folder to the destination
+     * 
+     * @param fromPath Path from which the copy process should get the original data
+     * @param toPath Path to which the data should be copied
+     * @param folderType String used to control the differences between different folder types
+     * @throws IOException
+     */
     private void copyFolderToDestination(Path fromPath, Path toPath, String folderType) throws IOException {
         if (StorageProvider.getInstance().isFileExists(fromPath)) {
             String debugInfo = getDebugInfo(fromPath, toPath, folderType);
@@ -491,11 +566,19 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         }
     }
 
+    /**
+     * get the prepared debug information
+     * 
+     * @param fromPath Path from which the copy process should get the original data
+     * @param toPath Path to which the data should be copied
+     * @param type String used to control the differences between different types
+     * @return the prepared debug information as a String
+     */
     private String getDebugInfo(Path fromPath, Path toPath, String type) {
         if (type.equals(OCR_FOLDER)) {
             return "Export copy ocr data from " + fromPath + " to " + toPath;
         }
-        String specialInfo = type; // by default
+        String specialInfo;
         switch (type) {
             case MEDIA_FOLDER:
                 specialInfo = "derivates";
@@ -518,10 +601,19 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
             case VALIDATION_FOLDER:
                 specialInfo = "validationFolder";
                 break;
+            default:
+                specialInfo = type;
         }
         return "Export Plugin - copy " + specialInfo + " from " + fromPath + " to " + toPath;
     }
 
+    /**
+     * perform the copy process for ocr folders
+     * 
+     * @param ocrFolder Path of the ocr folder
+     * @param destination Path to which the contents in the ocr folder should be copied
+     * @throws IOException
+     */
     private void copyOcrFolderToDestination(Path ocrFolder, Path destination) throws IOException {
 
         Set<String> ocrSuffixes = new HashSet<>(Arrays.asList(ocrSuffix));
@@ -543,6 +635,15 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         }
     }
 
+    /**
+     * perform the METS / MARC export
+     * 
+     * @param digDoc DigitalDocument
+     * @param temporaryFile Path to the temporary METS file
+     * @param destination Path to which the data should be copied
+     * @param filesInFolder files inside of the import directory
+     * @throws IOException
+     */
     private void performMetsMarcExport(DigitalDocument digDoc, Path temporaryFile, Path destination,
             List<Path> filesInFolder) throws IOException {
 
@@ -556,6 +657,14 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         moveTempMetsFileToDestination(temporaryFile, destination, anchorFile);
     }
 
+    /**
+     * update the MARC file
+     * 
+     * @param digDoc DigitalDocument
+     * @param temporaryFile Path to the temporary METS file
+     * @param anchorFile Path to the anchor file
+     * @param filesInFolder files inside of the import directory
+     */
     private void updateMarcFiles(DigitalDocument digDoc, Path temporaryFile, Path anchorFile, List<Path> filesInFolder) {
         DocStruct logical = digDoc.getLogicalDocStruct();
         DocStruct anchor = null;
@@ -613,6 +722,14 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         }
     }
 
+    /**
+     * move temporary METS files to the destination
+     * 
+     * @param temporaryFile Path to the temporary METS file, which will be the source
+     * @param exportedMetsFile Path to which this METS file should be copied
+     * @param anchorFile Path to the anchor file
+     * @throws IOException
+     */
     private void moveTempMetsFileToDestination(Path temporaryFile, Path exportedMetsFile, Path anchorFile) throws IOException {
         String debugInfo = getDebugInfo(temporaryFile, exportedMetsFile, "temporaryFile");
         log.debug(debugInfo);
@@ -630,11 +747,12 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
     }
 
     /**
+     * update the XML file
      * 
      * @param sourceMarcFile
      * @param digitalMarcFile
      * @param metsFile
-     * @return
+     * @return true if the XML file is successfully updated, false if errors happened
      */
     private boolean updateXmlFile(Path sourceMarcFile, Path digitalMarcFile, Path metsFile) {
         SAXBuilder parser = XmlTools.getSAXBuilder();
@@ -687,6 +805,12 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         return true;
     }
 
+    /**
+     * get the suffix of an ocr folder
+     * 
+     * @param path Path of the folder
+     * @return the suffix of the ocr folder as a String
+     */
     public String getOcrPathSuffix(Path path) {
         String name = path.getFileName().toString();
         String suffix = "";
