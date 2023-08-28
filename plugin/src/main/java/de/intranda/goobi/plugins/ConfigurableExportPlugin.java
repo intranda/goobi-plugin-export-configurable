@@ -67,6 +67,8 @@ import ugh.exceptions.WriteException;
 
 public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin, IPlugin {
 
+    private static final long serialVersionUID = 5498901552028238275L;
+
     private static final Namespace METS_NAMESPACE = Namespace.getNamespace("mets", "http://www.loc.gov/METS/");
     private static final String FOLDERS_PARENT_ELEMENT = "includeFolders";
     private static final String GENERIC_FOLDER = "genericFolder";
@@ -325,7 +327,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         }
 
         // copy folders to destination
-        performCopyFolders(process, destination);
+        performCopyFolders(process, destination, replacer);
 
         // copy the METS file to destination
         Path exportedMetsFile = Paths.get(destination.toString(), processTitle + ".xml");
@@ -357,30 +359,30 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
      * @throws SwapException
      * @throws DAOException
      */
-    private void performCopyFolders(Process process, Path destination) throws IOException, SwapException, DAOException {
+    private void performCopyFolders(Process process, Path destination, VariableReplacer replacer) throws IOException, SwapException, DAOException {
         if (includeDerivate) {
-            getFolderAndCopyFolderToDestination(process, destination, MEDIA_FOLDER);
+            getFolderAndCopyFolderToDestination(process, destination, MEDIA_FOLDER, replacer);
         }
         if (includeMaster) {
-            getFolderAndCopyFolderToDestination(process, destination, MASTER_FOLDER);
+            getFolderAndCopyFolderToDestination(process, destination, MASTER_FOLDER, replacer);
         }
         if (includeOcr) {
-            getFolderAndCopyFolderToDestination(process, destination, OCR_FOLDER);
+            getFolderAndCopyFolderToDestination(process, destination, OCR_FOLDER, replacer);
         }
         if (includeSource) {
-            getFolderAndCopyFolderToDestination(process, destination, SOURCE_FOLDER);
+            getFolderAndCopyFolderToDestination(process, destination, SOURCE_FOLDER, replacer);
         }
         if (includeImport) {
-            getFolderAndCopyFolderToDestination(process, destination, IMPORT_FOLDER);
+            getFolderAndCopyFolderToDestination(process, destination, IMPORT_FOLDER, replacer);
         }
         if (includeExport) {
-            getFolderAndCopyFolderToDestination(process, destination, EXPORT_FOLDER);
+            getFolderAndCopyFolderToDestination(process, destination, EXPORT_FOLDER, replacer);
         }
         if (includeITM) {
-            getFolderAndCopyFolderToDestination(process, destination, ITM_FOLDER);
+            getFolderAndCopyFolderToDestination(process, destination, ITM_FOLDER, replacer);
         }
         if (includeValidation) {
-            getFolderAndCopyFolderToDestination(process, destination, VALIDATION_FOLDER);
+            getFolderAndCopyFolderToDestination(process, destination, VALIDATION_FOLDER, replacer);
         }
 
         // process generic folders
@@ -392,7 +394,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
             log.debug("configuredFolder = " + configuredFolder);
             log.debug("folderPath = " + folderPath);
             SubnodeConfiguration genericFolderConfig = (SubnodeConfiguration) genericFolderConfigNodes.get(i);
-            getDestPathAndCopyFolder(genericFolderConfig, folderPath, destination, GENERIC_FOLDER);
+            getDestPathAndCopyFolder(genericFolderConfig, folderPath, destination, GENERIC_FOLDER, replacer);
         }
     }
 
@@ -406,17 +408,17 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
      * @throws SwapException
      * @throws DAOException
      */
-    private void getFolderAndCopyFolderToDestination(Process process, Path destination, String folderType)
+    private void getFolderAndCopyFolderToDestination(Process process, Path destination, String folderType, VariableReplacer replacer)
             throws IOException, SwapException, DAOException {
         Path fromPath = getSourcePathForCopy(process, folderType);
         if (fromPath == null || !StorageProvider.getInstance().isFileExists(fromPath)) {
             return;
         }
-        if (folderType.equals(OCR_FOLDER)) {
+        if (OCR_FOLDER.equals(folderType)) {
             copyOcrFolderToDestination(fromPath, destination);
         } else {
             SubnodeConfiguration subnodeConfig = foldersConfig.configurationAt(folderType);
-            getDestPathAndCopyFolder(subnodeConfig, fromPath, destination, folderType);
+            getDestPathAndCopyFolder(subnodeConfig, fromPath, destination, folderType, replacer);
         }
     }
 
@@ -462,7 +464,8 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
      * @param folderType String used to control the differences between different folder types
      * @throws IOException
      */
-    private void getDestPathAndCopyFolder(SubnodeConfiguration subnodeConfig, Path fromPath, Path destination, String folderType)
+    private void getDestPathAndCopyFolder(SubnodeConfiguration subnodeConfig, Path fromPath, Path destination, String folderType,
+            VariableReplacer replacer)
             throws IOException {
         // get the values of the subelement <destinationFolder />
         HashMap<String, String> destFolderMap = getDestFolderMap(subnodeConfig);
@@ -480,14 +483,15 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         for (Map.Entry<String, String> entry : destFolderMap.entrySet()) {
             String key = entry.getKey();
             String value = entry.getValue();
-
+            key = replacer.replace(key);
             // create a folder by the name of key
+
             Path toPath = Paths.get(destination.toString(), key);
             if (!StorageProvider.getInstance().isFileExists(toPath)) {
                 StorageProvider.getInstance().createDirectories(toPath);
             }
 
-            if (value.equals("")) {
+            if ("".equals(value)) {
                 log.debug("No pattern specified, '" + key + "' will be left empty.");
                 continue;
             }
@@ -519,7 +523,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
      * @return the default targeted path for the copy process
      */
     private Path getDefaultDestPathForCopy(Path fromPath, Path destination, String folderType) {
-        switch(folderType) {
+        switch (folderType) {
             case SOURCE_FOLDER:
                 return Paths.get(destination.toString(), processTitle + "_source");
             case IMPORT_FOLDER:
@@ -575,7 +579,7 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
      * @return the prepared debug information as a String
      */
     private String getDebugInfo(Path fromPath, Path toPath, String type) {
-        if (type.equals(OCR_FOLDER)) {
+        if (OCR_FOLDER.equals(type)) {
             return "Export copy ocr data from " + fromPath + " to " + toPath;
         }
         String specialInfo;
