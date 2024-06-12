@@ -291,7 +291,6 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         if (StorageProvider.getInstance().isFileExists(temporaryFile)) {
             StorageProvider.getInstance().deleteFile(temporaryFile);
         }
-        StorageProvider.getInstance().createFile(temporaryFile);
 
         // write mets file to temp folder
         writeMetsFile(process, temporaryFile.toString(), gdzfile, false);
@@ -332,6 +331,13 @@ public class ConfigurableExportPlugin extends ExportDms implements IExportPlugin
         // copy the METS file to destination
         Path exportedMetsFile = Paths.get(destination.toString(), processTitle + ".xml");
         StorageProvider.getInstance().copyFile(temporaryFile, exportedMetsFile);
+        Path temporaryAnchorFile = Paths.get(temporaryFile.toString().replace(".xml", "_anchor.xml"));
+        if (StorageProvider.getInstance().isFileExists(temporaryAnchorFile)) {
+
+            Path anchorDest = Paths.get(destination.toString(), processTitle + "_anchor.xml");
+            StorageProvider.getInstance().copyFile(temporaryAnchorFile, anchorDest);
+            StorageProvider.getInstance().deleteFile(temporaryAnchorFile);
+        }
 
         // perform METS/MARC-Export
         Path importDirectory = Paths.get(process.getImportDirectory());
