@@ -2,7 +2,7 @@
 title: Configurable export
 identifier: intranda_export_configurable
 published: true
-description: This is a technical documentation for the configurable Goobi Export plugin. It allows you to customise the export using the project configuration. By using export projects, it is also possible to export to different locations in one go.
+description: This export plugin allows a very flexible export of Goobi processes based on individual configuration.
 ---
 ## Introduction
 This documentation describes how to install, configure and use an export plugin in Goobi.
