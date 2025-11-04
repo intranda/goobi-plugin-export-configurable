@@ -3,6 +3,10 @@ title: Configurable export
 identifier: intranda_export_configurable
 published: true
 description: This export plugin allows a very flexible export of Goobi processes based on individual configuration.
+keywords:
+    - Goobi workflow
+    - Plugin
+    - Export Plugin
 ---
 ## Introduction
 This documentation describes how to install, configure and use an export plugin in Goobi.
